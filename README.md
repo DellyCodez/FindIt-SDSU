@@ -33,5 +33,3 @@ Our starting plan is **Python (Flask), SQLite, HTML, CSS, and JavaScript**. We'r
 Our [Phase 1 checklist](docs/phase-1.md) covers the course deliverables.
 
 ---
-
-*This is a student project, not an official SDSU lost-and-found service.*
