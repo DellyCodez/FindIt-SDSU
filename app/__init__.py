@@ -8,19 +8,20 @@ import secrets
 
 from flask import Flask, abort, flash, redirect, render_template, request, session, url_for
 
-from .demo_store import CATEGORIES, LOCATIONS, DemoStore
+from .storage import SQLiteStore
 
 
 def create_app(store=None):
     app = Flask(__name__)
     app.secret_key = os.environ.get("SECRET_KEY") or secrets.token_hex(32)
-    app.config["STORE"] = store if store is not None else DemoStore()
+    app.config["STORE"] = store if store is not None else SQLiteStore()
 
     @app.context_processor
     def shared_template_data():
         if "csrf_token" not in session:
             session["csrf_token"] = secrets.token_urlsafe(24)
-        return {"categories": CATEGORIES, "locations": LOCATIONS,
+        return {"categories": app.config["STORE"].list_categories(),
+                "locations": app.config["STORE"].list_locations(),
                 "csrf_token": session["csrf_token"], "today": date.today().isoformat()}
 
     @app.before_request
@@ -64,9 +65,9 @@ def create_app(store=None):
                 errors["title"] = "Enter a title between 4 and 90 characters."
             if not 12 <= len(values["description"]) <= 1200:
                 errors["description"] = "Add at least 12 characters of detail (maximum 1,200)."
-            if values["category"] not in CATEGORIES:
+            if values["category"] not in store().list_categories():
                 errors["category"] = "Choose a category."
-            if values["location"] not in LOCATIONS:
+            if values["location"] not in store().list_locations():
                 errors["location"] = "Choose a location."
             try:
                 report_date = date.fromisoformat(values["report_date"])

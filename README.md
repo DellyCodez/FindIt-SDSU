@@ -18,13 +18,13 @@ The claim process is the main feature we want to get right. A found item may hav
 
 ## Database
 
-We're planning to use five related tables: `users`, `items`, `categories`, `locations`, and `claims`. This lets us keep reports organized and track who submitted each item and claim.
+The application uses five related SQLite tables: `users`, `items`, `categories`, `locations`, and `claims`. This keeps reports organized and tracks who submitted each item and claim.
 
-See [Database design](docs/database.md) for the current plan.
+See [Database design](docs/database.md) for the implemented columns, relationships, and claim rules.
 
 ## Tech stack
 
-Our starting plan is **Python (Flask), SQLite, HTML, CSS, and JavaScript**. We're keeping the setup simple so we can focus on the database and a working website. We'll update this section if we change anything.
+The app uses **Python (Flask), SQLite, HTML, CSS, and JavaScript**. Flask is the only runtime package; Python's standard library supplies SQLite.
 
 ## Working on the project
 
@@ -42,24 +42,36 @@ Work in your own branch, keep changes to your part of the project, and don't pus
 
 ## Run the Phase 1 app demo
 
-The current app is a **local proof of concept** with fictional reports. It uses an in-memory store while Alexander implements SQLite persistence. Reports, claims, and review decisions work during one server run and **reset when the server restarts**. The demo reviewer page has no production authentication; use invented names and email addresses only.
+The current app is a **local proof of concept** with fictional reports. Reports, claims, and review decisions are saved in an ignored SQLite file at `instance/findit.sqlite3` and survive server restarts. The demo reviewer page has no production authentication; use invented names and email addresses only.
 
-With Python 3.12, from the repository root (macOS/Linux):
+Use Python 3.12. From the repository root on macOS or Linux:
 
 ```bash
 python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python -m app.init_db
 .venv/bin/python run.py
 ```
 
-Open `http://127.0.0.1:5000/` in your browser. Stop the server with Ctrl+C. On Windows PowerShell, use `.venv\Scripts\python` in place of `.venv/bin/python` after creating the virtual environment with `py -3 -m venv .venv`.
+On Windows PowerShell:
 
-To run the web flow checks:
+```powershell
+py -3.12 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m app.init_db
+.\.venv\Scripts\python.exe run.py
+```
+
+Open `http://127.0.0.1:5000/` in your browser. Stop the server with Ctrl+C. Re-running `app.init_db` keeps existing reports and claims; it adds the six fictional starter reports only to an empty database. Set `FINDIT_DB_PATH` before both initialization and launch to use a different SQLite file. Never commit a local `.sqlite3` file.
+
+To run the automated web and database checks on macOS or Linux:
 
 ```bash
 .venv/bin/python -m pip install -r requirements-dev.txt
 .venv/bin/python -m pytest -q app/test_web.py
 ```
+
+On Windows PowerShell, use `.\.venv\Scripts\python.exe` for both test commands.
 
 Try the demo in this order:
 
@@ -68,11 +80,11 @@ Try the demo in this order:
 3. Claim the found item with an invented name, email, and identifying detail. The detail is private to the local reviewer screen.
 4. Use **Demo reviewer** in the footer (or mobile menu) to approve or reject the claim. Approval marks the item returned and prevents a second approval.
 
-The app has no login, uploads, email, or public deployment workflow. The campus and item pictures are generated demonstration imagery, not real lost property. Database persistence is next on Alexander's branch; Andy will test the database and app after integration.
+The app has no login, uploads, email, or public deployment workflow. The campus and item pictures are generated demonstration imagery, not real lost property. Each new report uses a shared fictional demo reporter because there is no login. Andy will independently test the implemented database and app, then add the ER diagram, sample queries, and additional QA evidence.
 
 ## Progress
 
-**Phase 1 proof of concept:** the Flask UI, in-memory demo flow, responsive pages, and route tests are implemented. SQLite integration remains pending the agreed schema.
+**Phase 1 proof of concept:** the Flask UI, SQLite-backed report and claim flow, responsive pages, and integration tests are implemented. Production authentication and real student data are outside this local demonstration.
 
 Our [Phase 1 checklist](docs/phase-1.md) covers the course deliverables.
 

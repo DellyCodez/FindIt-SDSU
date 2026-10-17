@@ -1,34 +1,64 @@
-# Database design
+# Database design — implemented SQLite schema
 
-This is our starting design for FindIt SDSU. We may adjust fields as we build and test the website.
+`database/schema.sql` is the authoritative schema for the Flask app on `work/app`.
+Initialize it with `python -m app.init_db` from the repository root, using the
+project virtual environment. The ignored local file is `instance/findit.sqlite3`.
+Initialization is repeatable: it preserves existing reports and claims and inserts
+six fictional reports only if the `items` table is empty. `FINDIT_DB_PATH` can point
+both initialization and app startup at another SQLite file.
 
-## Tables
+## Tables and columns
 
-| Table | Main information |
-| --- | --- |
-| `users` | ID, name, email |
-| `categories` | ID, category name (electronics, keys, clothing, etc.) |
-| `locations` | ID, campus location name |
-| `items` | ID, reporter, category, location, title, description, lost/found type, status, date |
-| `claims` | ID, found item, claimant, explanation, claim status, date |
+| Table | Columns | Purpose |
+| --- | --- | --- |
+| `users` | `id` PK, `name`, `email` | Fictional reporter and claimant identities; email is unique without case sensitivity. |
+| `categories` | `id` PK, `name` | One category name per row. |
+| `locations` | `id` PK, `name` | One campus location name per row. |
+| `items` | `id` PK, `reporter_id` FK, `category_id` FK, `location_id` FK, `title`, `description`, `kind`, `status`, `report_date`, `image_key` | Lost/found reports. `image_key` selects one of the local demo pictures or is null. |
+| `claims` | `id` PK, `item_id` FK, `claimant_id` FK, `explanation`, `status`, `created_at` | Private identifying explanations and review decisions for found items. |
 
-## Relationships
+Each foreign key references the named table's `id` and restricts deletion of a
+referenced row. The app enables `PRAGMA foreign_keys = ON` for **every** SQLite
+connection. One user can report many items and submit many claims. Each item has
+one category, one location, and one reporter; a found item can have many claims.
+Category and location names live in their own tables instead of being copied into
+each item. The app joins these tables when it displays reports.
 
-- A user can report several items.
-- Every item belongs to one category and one location.
-- A user can submit claims for found items.
-- One found item can have multiple claims, but only one should be approved.
+## Validation and claim integrity
 
-We'll use primary and foreign keys to connect these tables instead of repeating category names or student details in every item record.
+Required text fields have `NOT NULL` and length checks. `items.kind` is `Lost` or
+`Found`; `items.status` is `Open` or `Returned`, with `Returned` allowed only for a
+found item. `claims.status` is `Pending`, `Approved`, or `Rejected`. Dates use
+`YYYY-MM-DD`. Form validation gives people useful messages, while the SQLite
+constraints also reject invalid direct inserts.
 
-## Things we want to demonstrate
+The partial unique index `one_approved_claim_per_item` permits at most one
+`Approved` claim per item. A trigger permits new claims only for open found items.
+Another trigger checks approval eligibility. When a claim is approved, an SQLite
+trigger marks its item `Returned` and rejects its other pending claims in the same
+transaction. Triggers prevent returning an item without an approved claim or
+reopening an approved item. The app's `review_claim` operation uses
+`BEGIN IMMEDIATE` so competing reviewers serialize their decisions. A rejected or
+approved claim cannot be reviewed again. A claim's item and claimant cannot be
+changed, and an approved claim cannot be deleted. An item with claims cannot
+change from found to lost.
 
-- Inserting, updating, deleting, and searching records with SQL.
-- Joining items to their categories, locations, and reporters.
-- Counting lost/found reports and claims with aggregate queries.
-- Validating foreign keys and claim statuses.
-- Approving a claim in a transaction so an item can't be returned to two people.
+Claim names, emails, and private explanations are queried only for the local
+demo reviewer page. Public item queries do not select this information. The
+reviewer has **no production authentication**; use fictional information and do
+not deploy it as a real claims service.
 
-## Before coding against the schema
+## Local setup and tests
 
-Alexander will implement the schema, exact columns and SQLite integration on `work/app`. Andy will review the schema, prepare fictional seed data and an ER diagram, and write database tests and sample queries on `work/database` using the approved column names. This page is still a design draft, not completed SQL code.
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements-dev.txt
+.venv/bin/python -m app.init_db
+.venv/bin/python -m pytest -q app/test_web.py
+.venv/bin/python run.py
+```
+
+See the README for Windows PowerShell commands. Andy can use this schema as the
+source of truth for an ER diagram, independent QA, fictional sample data, and
+verified JOIN, filter, and GROUP BY queries. Those supporting deliverables are
+separate from the authoritative schema.
