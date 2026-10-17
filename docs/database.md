@@ -31,4 +31,4 @@ We'll use primary and foreign keys to connect these tables instead of repeating 
 
 ## Before coding against the schema
 
-We'll agree on the exact column names and constraints, then add the actual SQL file to the repository. This page is a design draft, not completed database code. For the demo, we'll use made-up users and item reports.
+Alexander will implement the schema, exact columns and SQLite integration on `work/app`. Andy will review the schema, prepare fictional seed data and an ER diagram, and write database tests and sample queries on `work/database` using the approved column names. This page is still a design draft, not completed SQL code.

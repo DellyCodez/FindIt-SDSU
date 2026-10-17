@@ -32,13 +32,13 @@ We're splitting up the work so we can build different parts at the same time.
 
 | Person | Branch | Working on |
 | --- | --- | --- |
-| Alexander | `work/app` | The website, backend, and connecting everything |
-| Andy | `work/database` | SQLite database, sample data, ER diagram, and tests |
+| Alexander | `work/app` | Website, backend, SQLite schema and database integration |
+| Andy | `work/database` | Testing, sample data, ER diagram, SQL checks, and bug fixes |
 | Samuel | `work/docs` | Project website, technical report, and presentation |
 
 **Using AI to help?** ChatGPT, Gemini, Claude, and other tools can all use this repository for context. Start by giving the tool the GitHub link and asking it to read this README, [the database plan](docs/database.md), [the Phase 1 checklist](docs/phase-1.md), and [the temporary AI instructions](AGENTS.md). Tell it your name and branch—just connecting GitHub won't tell it which part you're responsible for.
 
-Work in your own branch, keep changes to your part of the project, and don't push directly to `main`. When you're done, push your branch and open a pull request so we can review it before merging. We'll agree on database table and column names before connecting the backend.
+Work in your own branch, keep changes to your part of the project, and don't push directly to `main`. When you're done, push your branch and open a pull request so we can review it before merging. Alexander is implementing the database; Andy will help test the schema and app before we merge everything.
 
 ## Progress
 

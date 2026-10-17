@@ -16,23 +16,27 @@ Ask **"Are you Alexander, Andy, or Samuel?"** if that isn't already clear. Confi
 
 | Person | Branch | Owns |
 | --- | --- | --- |
-| Alexander | `work/app` | The actual application: frontend, Flask backend, and integration |
-| Andy | `work/database` | SQLite schema, ER diagram, seed data, SQL queries, and tests |
+| Alexander | `work/app` | Flask frontend/backend, the authoritative SQLite schema, database access and integration |
+| Andy | `work/database` | QA/test ownership; assists with fictional seed data, ER diagram, SQL verification and bug reports |
 | Samuel | `work/docs` | Separate project website, technical report, instructions, presentation |
 
-## Andy — database and testing
+## Andy — QA / database testing and support
 
-**Start here:** Read `docs/database.md`. Show Alexander your proposed table names, field types and relationships **before** implementing them. Agree on those fields so the web app doesn't build against a different schema.
+**New assignment:** Alexander is now writing **`database/schema.sql`** and the Flask SQLite integration. Andy is **not** responsible for creating a parallel or replacement schema. His role is to prove that the application and its database work, and to help with the supporting database deliverables.
 
-**Your work:**
-- Build `database/schema.sql` for users, categories, locations, items and claims, with primary keys, foreign keys, required fields, sensible status constraints, and indexes when useful.
-- Make `database/seed.sql` (or a repeatable seed script) with **fictional** students and lost/found reports. It should work from a fresh database.
-- Draw an ER diagram and put it under `docs/` so Samuel can use it in the report.
-- Provide a few real SQL queries using JOIN, GROUP BY/COUNT, and filters. Explain what each shows.
-- Implement tests under `tests/` for foreign keys, report/claim relationships, and the claim approval rule. In SQLite, enable foreign-key enforcement for each connection. The app and database must prevent two approved claims for the same found item.
-- Once Alexander has working pages, test creating items, searching, submitting claims, resolving claims, and checking persistence after refresh/restart. Report steps to reproduce any bug.
+**Start now (even if SQLite is unfinished):**
+- Review the Flask proof of concept already committed on `work/app`. Ask Alexander for permission to sync that code into your **own** QA branch when needed. Do not push changes to `work/app` or `main`.
+- Write a simple Phase 1 manual test plan/checklist in `docs/qa-checklist.md`, covering browsing, searching/filtering, lost/found reports, claims, reviewer approval/rejection, incorrect inputs, and mobile layouts.
+- Run the app and its existing web tests locally if your environment supports it. Record **actual** results (pass/fail, commands and errors) in `docs/qa-results.md`; report reproducible bugs to Alexander.
+- Once Alexander's `database/schema.sql` is available, review the **actual** tables, PK/FK relationships, constraints and normalization; make an ER diagram under `docs/` that matches the implemented schema.
+- Prepare `database/seed.sql` or an equivalent fixture script with fictional sample users/items/claims **after** the schema is final. Coordinate field names with Alexander; do not change the schema to make the seed data fit.
+- Provide representative SQL queries demonstrating JOIN, COUNT/GROUP BY and filtering, with their verified results. Put them in `database/sample_queries.sql` (or an equivalent document).
+- Add tests in `tests/` for invalid foreign keys, required fields/statuses, record persistence across app restarts, and two competing claims for the same item (only one can be approved). Use the current schema and the app's real data access layer; don't test a different database model.
+- Perform an end-to-end check on desktop/mobile and give Samuel accurate screenshots/test observations when asked. Verify a clean setup from README.
 
-**Done means:** The schema and seed data run, the ER diagram matches the tables, tests have actual results, and Alexander has agreed to the schema. Don't claim tests passed unless you ran them. Don't edit application templates or routes without checking with Alexander.
+**Done means:** Tests and manual checks actually ran; failures and reproduction steps are documented; ER diagram, queries and seed data reflect Alexander's schema; important bugs are communicated to Alexander. Never claim a test passed without running it.
+
+**Boundaries:** Use `work/database`. Don't create or edit `database/schema.sql`, `app/` Flask routes/templates, or `run.py` without Alexander's agreement. When tests need application code, arrange to bring the committed `work/app` changes into your own branch first (ask before merging). Keep your own QA/seed/diagram changes separate and create a PR for review.
 
 ## Samuel — project website, documentation, presentation
 
@@ -49,19 +53,21 @@ Ask **"Are you Alexander, Andy, or Samuel?"** if that isn't already clear. Confi
 
 **Important:** Confidential teammate evaluations go separately in each student's Canvas submission comments, not on the public website. The project also has a separate discussion requirement involving classmate reviews and replies.
 
-## Alexander — application and integration
+## Alexander — application and SQLite development
 
-**Start here:** Read the same project docs, check existing files, then get Andy's agreed SQL schema before writing database-dependent routes.
+**New assignment:** Alexander owns both the working Flask application and the **single authoritative SQLite schema and integration**. Andy provides testing and supporting database deliverables.
 
 **Your work:**
-- Build a small, polished Flask application with HTML/CSS/JS and SQLite. Keep the setup straightforward and document how to run it.
-- Pages/flows: list lost/found reports; create a report; search/filter by type, category and location; view item detail; submit a claim on a found item; review a claim through a clearly marked **demo-only** reviewer page.
-- Save and retrieve real database records, handle invalid form inputs, and display useful empty and error states. Don't hardcode counts or pretend demo buttons work.
-- Work with Andy on claim approval as a transaction. The same found item must not be awarded twice, and private claim evidence must not show on public item pages.
-- Supply Samuel with **real** screenshots, the exact startup steps and a concise explanation of the implemented features.
-- Integrate reviewed pull requests and make sure the complete application runs from a fresh setup.
+- Preserve and refine the existing homepage, browse/search, report, item details, claims and clearly marked demo-only review pages.
+- Create `database/schema.sql` on `work/app`: normalize the planned users, categories, locations, items and claims; include primary/foreign keys, NOT NULL/CHECK constraints, useful indexes, and a database-level rule preventing two approved claims on one found item.
+- Decide exact columns based on current web forms/routes; write these down in `docs/database.md` **after** implementing them. Avoid unnecessarily breaking the existing `DemoStore` interface.
+- Implement a small SQLite data layer and replace the process-local `DemoStore` for normal runs, preserving working functionality. Initialize the local SQLite database through an explicit repeatable command/script, never by committing a .db file.
+- Use `PRAGMA foreign_keys = ON` on every database connection. Use atomic transactions for approvals; protect private claim evidence from public pages.
+- Keep the demo-only reviewer restricted to local demonstration until real authentication exists. Use fictional names and email addresses.
+- Add integration tests for report → search → claim → approval, persistence after restart and second-approval rejection. Let Andy independently review/test them and contribute further tests/seed data.
+- Give Samuel actual screenshots, setup instructions, database design details and any limitations.
 
-**Done means:** A report can be created, found via search, claimed, and reviewed; changes persist in SQLite; the README tells a teammate how to run the project; tests and demo steps reflect real behavior.
+**Done means:** The app runs from clean setup with SQLite persistence, both the UI and data integrity checks work, and Andy has reproducible test results. Work only on `work/app`, not `main`.
 
 ## Rules for everybody's AI
 
