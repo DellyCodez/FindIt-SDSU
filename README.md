@@ -26,6 +26,20 @@ See [Database design](docs/database.md) for the current plan.
 
 Our starting plan is **Python (Flask), SQLite, HTML, CSS, and JavaScript**. We're keeping the setup simple so we can focus on the database and a working website. We'll update this section if we change anything.
 
+## Working on the project
+
+We're splitting up the work so we can build different parts at the same time.
+
+| Person | Branch | Working on |
+| --- | --- | --- |
+| Alexander | `work/app` | The website, backend, and connecting everything |
+| Andy | `work/database` | SQLite database, sample data, ER diagram, and tests |
+| Samuel | `work/docs` | Project website, technical report, and presentation |
+
+**Using AI to help?** ChatGPT, Gemini, Claude, and other tools can all use this repository for context. Start by giving the tool the GitHub link and asking it to read this README, [the database plan](docs/database.md), [the Phase 1 checklist](docs/phase-1.md), and [the temporary AI instructions](AGENTS.md). Tell it your name and branch—just connecting GitHub won't tell it which part you're responsible for.
+
+Work in your own branch, keep changes to your part of the project, and don't push directly to `main`. When you're done, push your branch and open a pull request so we can review it before merging. We'll agree on database table and column names before connecting the backend.
+
 ## Progress
 
 **Phase 1 — getting started.** The database and website are being built. Setup instructions and screenshots will be added once there's a working version to run.
