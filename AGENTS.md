@@ -51,6 +51,8 @@ Ask **"Are you Alexander, Andy, or Samuel?"** if that isn't already clear. Confi
 
 ## Alexander — application and integration
 
+**App build brief:** Read [`docs/app-build.md`](docs/app-build.md) first. It records the approved UI direction, screens, implementation order, integration boundary, and definition of done. This is the main handoff for Codex on `work/app`.
+
 **Start here:** Read the same project docs, check existing files, then get Andy's agreed SQL schema before writing database-dependent routes.
 
 **Your work:**
