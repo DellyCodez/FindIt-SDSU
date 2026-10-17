@@ -32,17 +32,17 @@ We're splitting up the work so we can build different parts at the same time.
 
 | Person | Branch | Working on |
 | --- | --- | --- |
-| Alexander | `work/app` | The website, backend, and connecting everything |
-| Andy | `work/database` | SQLite database, sample data, ER diagram, and tests |
+| Alexander | `work/app` | Website, backend, SQLite schema and database integration |
+| Andy | `work/database` | Testing, sample data, ER diagram, SQL checks, and bug fixes |
 | Samuel | `work/docs` | Project website, technical report, and presentation |
 
 **Using AI to help?** ChatGPT, Gemini, Claude, and other tools can all use this repository for context. Start by giving the tool the GitHub link and asking it to read this README, [the database plan](docs/database.md), [the Phase 1 checklist](docs/phase-1.md), and [the temporary AI instructions](AGENTS.md). Tell it your name and branch—just connecting GitHub won't tell it which part you're responsible for.
 
-Work in your own branch, keep changes to your part of the project, and don't push directly to `main`. When you're done, push your branch and open a pull request so we can review it before merging. We'll agree on database table and column names before connecting the backend.
+Work in your own branch, keep changes to your part of the project, and don't push directly to `main`. When you're done, push your branch and open a pull request so we can review it before merging. Alexander is implementing the database; Andy will help test the schema and app before we merge everything.
 
 ## Run the Phase 1 app demo
 
-The current app is a **local proof of concept** with fictional reports. It uses an in-memory store while Andy's SQLite schema is being agreed. Reports, claims, and review decisions work during one server run and **reset when the server restarts**. The demo reviewer page has no production authentication; use invented names and email addresses only.
+The current app is a **local proof of concept** with fictional reports. It uses an in-memory store while Alexander implements SQLite persistence. Reports, claims, and review decisions work during one server run and **reset when the server restarts**. The demo reviewer page has no production authentication; use invented names and email addresses only.
 
 With Python 3.12, from the repository root (macOS/Linux):
 
@@ -68,7 +68,7 @@ Try the demo in this order:
 3. Claim the found item with an invented name, email, and identifying detail. The detail is private to the local reviewer screen.
 4. Use **Demo reviewer** in the footer (or mobile menu) to approve or reject the claim. Approval marks the item returned and prevents a second approval.
 
-The app has no login, uploads, email, or public deployment workflow. The campus and item pictures are generated demonstration imagery, not real lost property. Database persistence will be integrated after Andy's column names and constraints are approved.
+The app has no login, uploads, email, or public deployment workflow. The campus and item pictures are generated demonstration imagery, not real lost property. Database persistence is next on Alexander's branch; Andy will test the database and app after integration.
 
 ## Progress
 

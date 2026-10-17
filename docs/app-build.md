@@ -1,6 +1,6 @@
 # FindIt SDSU — app build brief
 
-This is the handoff for **Alexander's `work/app` branch**. The visual direction has already been approved. Build a polished, usable **student-project MVP** for the CS 514 Phase 1 demonstration. Start with the UI, then connect Andy's database once its schema is agreed.
+This is the handoff for **Alexander's `work/app` branch**. The visual direction has already been approved. Build a polished, usable **student-project MVP** for the CS 514 Phase 1 demonstration. The Flask UI and in-memory demo flow are already built; the next stage is for Alexander to implement the SQLite schema and persistence, with Andy independently testing.
 
 **Read first:** `README.md`, `AGENTS.md`, `docs/database.md`, `docs/phase-1.md`. Do not change Andy's `work/database` or Samuel's `work/docs` branch. This is a build plan, **not a claim that these features exist yet**.
 
@@ -38,10 +38,10 @@ Use normal links, forms and POST actions with success/error feedback. Search, cr
 
 - Prefer **Python + Flask + SQLite + Jinja HTML templates + hand-written CSS + a little vanilla JS**. Don't replace it with Next.js/React or create a huge architecture.
 - App work belongs in `app/`, `templates/` or `app/templates/`, `static/` or `app/static/`, `run.py` and `requirements.txt`. Pick one consistent structure.
-- Database schema, seeds, SQL query documentation and database tests belong to Andy in `database/` and `tests/`. **Do not invent a competing permanent schema, rename Andy's columns, or overwrite his files.**
-- Discuss a minimal data interface with Andy before implementing SQL-backed routes: `list_items(filters)`, `get_item(id)`, `create_item(data)`, `submit_claim(item_id, data)`, `list_pending_claims()`, `review_claim(id, action)`. Adjust to agreed schema; don't force an API on him.
+- **Alexander** owns the authoritative `database/schema.sql` and SQLite integration on `work/app`. **Andy** owns database QA and adds seed data, ER diagram, query checks and tests on `work/database` after agreeing on column names. Do not overwrite his supporting deliverables.
+- Keep the already-implemented DemoStore-compatible data interface for SQL-backed routes, and share finalized table/column names with Andy: `list_items(filters)`, `get_item(id)`, `create_item(data)`, `submit_claim(item_id, data)`, `list_pending_claims()`, `review_claim(id, action)`. Adjust to agreed schema; don't force an API on him.
 - Make `PRAGMA foreign_keys = ON` part of each SQLite connection when integration is ready. Review/approval must use a transaction, prevent approval of two claims on one found item, and keep claim explanations private.
-- For **UI development before the real schema arrives**, use a clearly named in-memory/demo fixture list in the application layer, **not a second SQL schema**. After Andy's SQL is available, swap the fixture layer for the actual SQLite interface. Don't pretend in-memory fixtures persist.
+- The UI already runs with fictional in-memory `DemoStore`. Keep that working while writing the single SQLite schema and persistence layer; then make the persistent store the normal path. Don't call the demo fixtures persistent.
 - Use only invented demo names/content. Don't commit a local `.db`, `.env`, credentials, or private student details.
 
 ## Build sequence — work through this in order
@@ -53,10 +53,10 @@ Use normal links, forms and POST actions with success/error feedback. Search, cr
 - Run it, inspect layouts at desktop and mobile widths, fix broken paths and console/server errors.
 
 **Stage B: Make it a working database-backed demonstration**
-- Check whether Andy's agreed `database/schema.sql` exists. If not, request the schema/column names before making dependent SQL changes. **Don't quietly replace his work**.
-- Add the SQLite connection/data access layer compatible with Andy's schema. Make search, forms, claims and the demo reviewer flow persist.
+- **Alexander:** inspect the implemented Flask routes/data interface, then create the authoritative `database/schema.sql` and an idempotent initialization approach. Share schema columns with Andy to unblock his tests, seed data and ER diagram.
+- Add the SQLite connection/data access layer compatible with the approved schema. Make search, forms, claims and the demo reviewer flow persist.
 - Verify with fictional seed data and a clean, repeatable local setup. Handle invalid IDs and invalid forms gracefully.
-- Coordinate branch integration through a reviewed pull request. If blocked by unavailable schema, clearly identify the blocker and keep the UI demonstrable without inventing persistence.
+- Ask Andy to independently run persistence/constraint tests and log results. Integrate his QA/seed contributions through a reviewed PR after schema agreement.
 
 **Stage C: Proof and handoff**
 - Run local app and any available tests; show actual results, not claims.
@@ -72,7 +72,7 @@ Use normal links, forms and POST actions with success/error feedback. Search, cr
 - [ ] Lost/found report form validates required fields.
 - [ ] Users can open item details and submit a claim on a found item.
 - [ ] Local-only review flow can approve/reject a claim, without exposing private evidence on public pages.
-- [ ] After Andy's schema is integrated, records really persist in SQLite and a second claim can't be approved for the same found item.
+- [ ] After Alexander's schema is integrated, records really persist in SQLite and a second claim can't be approved for the same found item.
 - [ ] A basic test or repeatable manual demo verifies report → search → claim → review; note honestly what ran.
 - [ ] Responsive CSS, alt text/accessible labels and useful empty/error states are present.
 - [ ] Code is on `work/app`; no unauthorized push to `main`.
