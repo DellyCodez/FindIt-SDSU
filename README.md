@@ -40,9 +40,39 @@ We're splitting up the work so we can build different parts at the same time.
 
 Work in your own branch, keep changes to your part of the project, and don't push directly to `main`. When you're done, push your branch and open a pull request so we can review it before merging. We'll agree on database table and column names before connecting the backend.
 
+## Run the Phase 1 app demo
+
+The current app is a **local proof of concept** with fictional reports. It uses an in-memory store while Andy's SQLite schema is being agreed. Reports, claims, and review decisions work during one server run and **reset when the server restarts**. The demo reviewer page has no production authentication; use invented names and email addresses only.
+
+With Python 3.12, from the repository root (macOS/Linux):
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python run.py
+```
+
+Open `http://127.0.0.1:5000/` in your browser. Stop the server with Ctrl+C. On Windows PowerShell, use `.venv\Scripts\python` in place of `.venv/bin/python` after creating the virtual environment with `py -3 -m venv .venv`.
+
+To run the web flow checks:
+
+```bash
+.venv/bin/python -m pip install -r requirements-dev.txt
+.venv/bin/python -m pytest -q app/test_web.py
+```
+
+Try the demo in this order:
+
+1. Browse the fictional lost and found reports; search by text and filter by report type, category, or location.
+2. Report a **found** item with invented details. The new report opens automatically.
+3. Claim the found item with an invented name, email, and identifying detail. The detail is private to the local reviewer screen.
+4. Use **Demo reviewer** in the footer (or mobile menu) to approve or reject the claim. Approval marks the item returned and prevents a second approval.
+
+The app has no login, uploads, email, or public deployment workflow. The campus and item pictures are generated demonstration imagery, not real lost property. Database persistence will be integrated after Andy's column names and constraints are approved.
+
 ## Progress
 
-**Phase 1 — getting started.** The database and website are being built. Setup instructions and screenshots will be added once there's a working version to run.
+**Phase 1 proof of concept:** the Flask UI, in-memory demo flow, responsive pages, and route tests are implemented. SQLite integration remains pending the agreed schema.
 
 Our [Phase 1 checklist](docs/phase-1.md) covers the course deliverables.
 

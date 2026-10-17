@@ -1,0 +1,7 @@
+{% extends 'base.html' %}
+{% block title %}Browse reports — FindIt SDSU{% endblock %}
+{% block content %}
+<section class="page-intro"><div class="container"><p class="eyebrow">Find your way back</p><h1>Browse lost &amp; found</h1><p>Search fictional reports from around our demonstration campus.</p></div></section>
+<div class="container browse-content">{% include '_filters.html' %}<div class="results-heading"><div><h2>{{ items|length }} {{ 'report' if items|length == 1 else 'reports' }}</h2><p>Showing items that match your search.</p></div><a class="button button-small button-outline" href="{{ url_for('new_item') }}">＋ Report an item</a></div>
+{% if items %}<div class="cards-grid">{% for item in items %}{% include '_card.html' %}{% endfor %}</div>{% else %}<div class="empty-state"><span aria-hidden="true">⌕</span><h2>No reports found</h2><p>Try another search term or clear a filter to see more items.</p><a class="button button-outline" href="{{ url_for('items') }}">Clear filters</a></div>{% endif %}</div>
+{% endblock %}
