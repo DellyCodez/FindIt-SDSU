@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#faf7f2">
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+  <title>{% block title %}FindIt SDSU{% endblock %}</title>
+  <meta name="description" content="Search lost and found reports near SDSU, report an item, and follow possible matches.">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <script defer src="{{ url_for('static', filename='site.js') }}"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="container nav-wrap">
+      <a class="brand" href="{{ url_for('home') }}" aria-label="FindIt SDSU home"><span class="pin-mark" aria-hidden="true"><span></span></span><span>FindIt <strong>SDSU</strong></span></a>
+      <nav class="main-nav" id="main-nav" aria-label="Main navigation">
+        <a href="{{ url_for('home') }}" {% if request.endpoint == 'home' %}aria-current="page"{% endif %}>Home</a>
+        <a href="{{ url_for('items') }}" {% if request.endpoint == 'items' %}aria-current="page"{% endif %}>Browse Items</a>
+        <a href="{{ url_for('product') }}" {% if request.endpoint == 'product' %}aria-current="page"{% endif %}>How It Works</a>
+        <a href="{{ url_for('about') }}" {% if request.endpoint == 'about' %}aria-current="page"{% endif %}>About</a>
+        <a href="{{ url_for('blog') }}" {% if request.endpoint == 'blog' %}aria-current="page"{% endif %}>Blog</a>
+      </nav>
+      <a class="button button-primary nav-report" href="{{ url_for('new_item') }}">Report an item <span aria-hidden="true">↗</span></a>
+      <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="main-nav" aria-label="Open menu"><span></span><span></span><span></span></button>
+    </div>
+  </header>
+  <main id="main">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}<div class="container flash-stack" role="status">{% for category, message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}</div>{% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+  <footer class="site-footer">
+    <div class="container footer-top">
+      <div><a class="brand footer-brand" href="{{ url_for('home') }}"><span class="pin-mark" aria-hidden="true"><span></span></span><span>FindIt <strong>SDSU</strong></span></a><p>A clearer way back to what matters.</p></div>
+      <div class="footer-links"><a href="{{ url_for('items') }}">Browse</a><a href="{{ url_for('new_item') }}">Report an item</a><a href="{{ url_for('product') }}">How it works</a><a href="{{ url_for('about') }}">About</a><a href="{{ url_for('blog') }}">Blog</a><a href="{{ url_for('resources') }}">Project resources</a></div>
+    </div>
+    <div class="container footer-bottom"><span>Independent student project; not an official SDSU service. Sample reports are fictional.</span><span>© {{ today[:4] }} FindIt SDSU</span></div>
+  </footer>
+</body>
+</html>

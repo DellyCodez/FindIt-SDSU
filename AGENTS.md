@@ -55,6 +55,11 @@ Ask **"Are you Alexander, Andy, or Samuel?"** if that isn't already clear. Confi
 
 ## Alexander — application and SQLite development
 
+<<<<<<< HEAD
+=======
+**App build brief:** Read [`docs/app-build.md`](docs/app-build.md) for the approved visual design and latest app status. The Flask proof-of-concept implementation is already committed on `work/app`; **extend that existing app, don't rebuild it**.
+
+>>>>>>> origin/work/unified-site
 **New assignment:** Alexander owns both the working Flask application and the **single authoritative SQLite schema and integration**. Andy provides testing and supporting database deliverables.
 
 **Your work:**

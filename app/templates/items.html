@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block title %}Browse lost and found — FindIt SDSU{% endblock %}
+{% block content %}
+<section class="page-intro browse-intro"><div class="container"><p class="eyebrow">Find your way back</p><h1>Browse lost &amp; found.</h1><p>Search the details, narrow the location, and see what turns up.</p></div></section>
+<div class="container browse-content">
+  {% include '_filters.html' %}
+  {% if filters.q or filters.kind or filters.category or filters.location %}<div class="active-filters" aria-label="Active filters"><span>Showing:</span>
+    {% if filters.q %}<a href="{{ url_for('items', kind=filters.kind, category=filters.category, location=filters.location, sort=filters.sort) }}">“{{ filters.q }}” <span aria-hidden="true">×</span><span class="sr-only">Remove search term</span></a>{% endif %}
+    {% if filters.kind %}<a href="{{ url_for('items', q=filters.q, category=filters.category, location=filters.location, sort=filters.sort) }}">{{ filters.kind }} <span aria-hidden="true">×</span><span class="sr-only">Remove type filter</span></a>{% endif %}
+    {% if filters.category %}<a href="{{ url_for('items', q=filters.q, kind=filters.kind, location=filters.location, sort=filters.sort) }}">{{ filters.category }} <span aria-hidden="true">×</span><span class="sr-only">Remove category filter</span></a>{% endif %}
+    {% if filters.location %}<a href="{{ url_for('items', q=filters.q, kind=filters.kind, category=filters.category, sort=filters.sort) }}">{{ filters.location }} <span aria-hidden="true">×</span><span class="sr-only">Remove location filter</span></a>{% endif %}
+    <a class="clear-filters" href="{{ url_for('items') }}">Clear all</a>
+  </div>{% endif %}
+  <div class="results-heading"><div><h2>{{ items|length }} {{ 'item' if items|length == 1 else 'items' }} found</h2><p>{% if filters.q or filters.kind or filters.category or filters.location %}Results for your current search.{% else %}The latest reports, all in one place.{% endif %}</p></div><a class="text-link" href="{{ url_for('new_item') }}">Report an item <span aria-hidden="true">↗</span></a></div>
+  {% if items %}<div class="cards-grid browse-grid">{% for item in items %}{% include '_card.html' %}{% endfor %}</div>{% else %}<div class="empty-state"><span aria-hidden="true">⌕</span><h2>No items found</h2><p>Try a different search or clear a filter. You can also add a report.</p><div class="empty-actions"><a class="button button-outline" href="{{ url_for('items') }}">Clear filters</a><a class="button button-primary" href="{{ url_for('new_item') }}">Report an item</a></div></div>{% endif %}
+</div>
+{% endblock %}

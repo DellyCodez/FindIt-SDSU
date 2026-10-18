@@ -1,0 +1,5 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Please slow down' if rate_limited else 'Something went wrong' }} — FindIt SDSU{% endblock %}
+{% block content %}
+<section class="success-page"><div class="container"><div class="success-card"><p class="eyebrow">{{ 'Too many requests' if rate_limited else 'Temporary error' }}</p><h1>{{ 'Take a little break.' if rate_limited else "We couldn't finish that request." }}</h1><p>{{ 'This connection has reached the submission limit. Please try again later.' if rate_limited else 'Please try again in a moment. If it keeps happening, contact the project team.' }}</p><a class="button button-primary" href="{{ url_for('home') }}">Back to home</a></div></div></section>
+{% endblock %}

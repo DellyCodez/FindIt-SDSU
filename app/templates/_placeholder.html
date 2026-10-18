@@ -1,0 +1,26 @@
+<div class="placeholder-art" aria-hidden="true">
+  <svg viewBox="0 0 120 120" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+  {% if item.item_type == 'Smartphone' or 'iphone' in item.title|lower or 'smartphone' in item.title|lower %}
+    <rect x="37" y="12" width="46" height="96" rx="9"/><path d="M52 20h16M54 98h12"/><circle cx="60" cy="59" r="18"/><path d="M53 59h14M60 52v14"/>
+  {% elif item.item_type == 'Laptop' or 'laptop' in item.title|lower %}
+    <rect x="24" y="25" width="72" height="54" rx="4"/><path d="M15 88h90l-8 9H23l-8-9ZM44 88l-3 4h38l-3-4"/>
+  {% elif item.item_type == 'Notebook' or 'notebook' in item.title|lower %}
+    <rect x="30" y="15" width="64" height="90" rx="4"/><path d="M42 15v90M53 42h28M53 54h28M53 66h20M24 28h12M24 44h12M24 60h12M24 76h12"/>
+  {% elif item.item_type == 'Wallet' or 'wallet' in item.title|lower %}
+    <rect x="20" y="34" width="80" height="62" rx="7"/><path d="M20 47h80M69 59h31v25H69a8 8 0 0 1-8-8v-9a8 8 0 0 1 8-8Z"/><circle cx="74" cy="71" r="2"/>
+  {% elif item.category == 'Drinkware' %}
+    <path d="M46 22h28v9H46zM48 31v10l-6 9v42a9 9 0 0 0 9 9h18a9 9 0 0 0 9-9V50l-6-9V31M42 58h36M49 75h22"/>
+  {% elif item.category == 'Bags' %}
+    <path d="M29 46h62v49a8 8 0 0 1-8 8H37a8 8 0 0 1-8-8V46ZM46 46v-9a14 14 0 0 1 28 0v9M29 68h62M52 68v11h16V68"/>
+  {% elif item.category == 'Electronics' %}
+    <path d="M27 68V59a33 33 0 0 1 66 0v9M27 64h13v31H29a9 9 0 0 1-9-9V73a9 9 0 0 1 7-9ZM93 64H80v31h11a9 9 0 0 0 9-9V73a9 9 0 0 0-7-9Z"/>
+  {% elif item.category == 'Keys' %}
+    <circle cx="43" cy="50" r="17"/><circle cx="43" cy="50" r="5"/><path d="m55 62 39 39h-13l-8-8-7 7-8-8 7-7-10-10"/>
+  {% elif item.category == 'Clothing' %}
+    <path d="m43 29 17 9 17-9 22 16-12 17-12-8v47H45V54l-12 8-12-17 22-16ZM51 31c0 12 18 12 18 0"/>
+  {% else %}
+    <path d="M60 102s31-25 31-49a31 31 0 0 0-62 0c0 24 31 49 31 49Z"/><circle cx="60" cy="53" r="10"/><path d="M83 19h13M89.5 12.5v13"/>
+  {% endif %}
+  </svg>
+  <span>Illustration · no photo</span>
+</div>
