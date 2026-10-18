@@ -6,9 +6,11 @@ project virtual environment. The ignored local file is `instance/findit.sqlite3`
 Initialization is repeatable: it preserves existing reports and claims and inserts
 six fictional reports only if the `items` table is empty. `FINDIT_DB_PATH` can point
 both initialization and app startup at another SQLite file.
-An existing version 1 database is upgraded in place to version 2 by
-`database/migrations/002_match_candidates.sql`; the transaction adds one index
-and preserves every report and claim. The initializer records the version in
+An existing version 1 database is upgraded in place through
+`database/migrations/002_match_candidates.sql` and
+`database/migrations/003_item_photos.sql`; version 2 uses only the latter.
+These migrations run in a transaction and preserve every report and claim.
+The initializer records version 3 in
 SQLite's `user_version` pragma. It refuses unknown versions and nonempty
 unversioned databases instead of rebuilding them.
 
@@ -20,6 +22,7 @@ unversioned databases instead of rebuilding them.
 | `categories` | `id` PK, `name` | One category name per row. |
 | `locations` | `id` PK, `name` | One campus location name per row. |
 | `items` | `id` PK, `reporter_id` FK, `category_id` FK, `location_id` FK, `title`, `description`, `kind`, `status`, `report_date`, `image_key` | Lost/found reports. `image_key` selects one of the local demo pictures or is null. |
+| `item_photos` | `id` PK, `item_id` FK, `position`, `filename`, `width`, `height`, `byte_size` | Up to three processed WebP photos for a report; the first is the card image. |
 | `claims` | `id` PK, `item_id` FK, `claimant_id` FK, `explanation`, `status`, `created_at` | Private identifying explanations and review decisions for found items. |
 
 Each foreign key references the named table's `id` and restricts deletion of a
@@ -28,6 +31,12 @@ connection. One user can report many items and submit many claims. Each item has
 one category, one location, and one reporter; a found item can have many claims.
 Category and location names live in their own tables instead of being copied into
 each item. The app joins these tables when it displays reports.
+`item_photos.item_id` references `items.id`; a unique `(item_id, position)` key
+and the 1–3 position check prevent duplicate slots and more than three photos.
+The `(item_id, position)` index supports ordered galleries. Filenames are random
+and have no user-supplied path component. The actual WebP files are in the
+ignored `instance/uploads/` directory, or `FINDIT_UPLOAD_DIR` if configured.
+SQLite and the upload directory must be kept together for photos to persist.
 
 ## Validation and claim integrity
 

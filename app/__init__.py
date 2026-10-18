@@ -6,9 +6,11 @@ import os
 import re
 import secrets
 
-from flask import Flask, abort, flash, redirect, render_template, request, session, url_for
+from flask import Flask, abort, flash, redirect, render_template, request, send_file, session, url_for
+from werkzeug.exceptions import RequestEntityTooLarge
 
 from .matching import possible_matches
+from .photos import PhotoValidationError, prepare_photos
 from .storage import SQLiteStore
 
 
@@ -16,11 +18,30 @@ def create_app(store=None):
     app = Flask(__name__)
     app.secret_key = os.environ.get("SECRET_KEY") or secrets.token_hex(32)
     app.config["STORE"] = store if store is not None else SQLiteStore()
+    app.config["MAX_CONTENT_LENGTH"] = 25 * 1024 * 1024
+
+    @app.errorhandler(RequestEntityTooLarge)
+    def too_large(error):
+        return render_template("report.html", values={},
+                               errors={"photos": "The total upload must be under 25 MB. Choose smaller photos."}), 413
 
     @app.template_filter("readable_date")
     def readable_date(value):
         reported = date.fromisoformat(value)
         return f"{reported:%b} {reported.day}, {reported.year}"
+
+    @app.template_filter("illustration_type")
+    def illustration_type(item):
+        if item["category"] != "Electronics":
+            return item["category"].lower()
+        title = item["title"].lower()
+        if re.search(r"\b(phone|smartphone|iphone|pixel|galaxy)\b", title):
+            return "phone"
+        if re.search(r"\b(earbuds?|airpods?|headphones?)\b", title):
+            return "earbuds"
+        if re.search(r"\b(laptop|macbook|notebook computer)\b", title):
+            return "laptop"
+        return "electronics"
 
     @app.context_processor
     def shared_template_data():
@@ -86,8 +107,16 @@ def create_app(store=None):
                     raise ValueError
             except ValueError:
                 errors["report_date"] = "Choose a valid date that is not in the future."
+            try:
+                photos = prepare_photos(request.files.getlist("photos"))
+            except PhotoValidationError as error:
+                errors["photos"] = str(error)
             if not errors:
-                item = store().create_item(values)
+                try:
+                    item = store().create_item(values, photos)
+                except OSError:
+                    errors["photos"] = "Photos could not be saved. Please try again."
+                    return render_template("report.html", values=values, errors=errors), 503
                 flash("Your fictional report is live. Check the possible matches below as new reports arrive.", "success")
                 return redirect(url_for("item_detail", item_id=item["id"]))
         return render_template("report.html", values=values, errors=errors)
@@ -95,7 +124,17 @@ def create_app(store=None):
     @app.get("/items/<int:item_id>")
     def item_detail(item_id):
         item = item_or_404(item_id)
-        return render_template("detail.html", item=item, matches=possible_matches(store(), item))
+        return render_template("detail.html", item=item, photos=store().get_photos(item_id),
+                               matches=possible_matches(store(), item))
+
+    @app.get("/items/<int:item_id>/photos/<int:photo_id>")
+    def item_photo(item_id, photo_id):
+        path = store().photo_path(item_id, photo_id)
+        if path is None or not path.is_file():
+            abort(404)
+        response = send_file(path, mimetype="image/webp", max_age=3600)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        return response
 
     @app.route("/items/<int:item_id>/claim", methods=["GET", "POST"])
     def claim_item(item_id):

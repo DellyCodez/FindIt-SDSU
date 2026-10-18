@@ -19,13 +19,13 @@ The claim process is the main feature we want to get right. A found item may hav
 
 ## Database
 
-The application uses five related SQLite tables: `users`, `items`, `categories`, `locations`, and `claims`. This keeps reports organized and tracks who submitted each item and claim.
+The application uses six related SQLite tables: `users`, `items`, `categories`, `locations`, `claims`, and `item_photos`. This keeps reports organized and tracks who submitted each item and claim. Uploaded photo metadata is associated with reports; processed files live in an ignored local directory.
 
 See [Database design](docs/database.md) for the implemented columns, relationships, and claim rules.
 
 ## Tech stack
 
-The app uses **Python (Flask), SQLite, HTML, CSS, and JavaScript**. Flask is the only runtime package; Python's standard library supplies SQLite.
+The app uses **Python (Flask and Pillow), SQLite, HTML, CSS, and JavaScript**. Python's standard library supplies SQLite. Pillow validates and re-encodes report photos.
 
 ## Working on the project
 
@@ -65,7 +65,9 @@ py -3.12 -m venv .venv
 
 Open `http://127.0.0.1:5000/` in your browser. Stop the server with Ctrl+C. Re-running `app.init_db` keeps existing reports and claims; it adds the six fictional starter reports only to an empty database. Set `FINDIT_DB_PATH` before both initialization and launch to use a different SQLite file. Never commit a local `.sqlite3` file.
 
-If you already have a local database from the first SQLite version, run `app.init_db` once before launching the updated app. It adds the matching lookup index in a transaction without replacing reports or claims. Possible Matches appear on open item details when opposite-type reports have plausible public details. They are suggestions, not ownership decisions.
+If you already have a local version 1 or 2 database, run `app.init_db` once before launching the updated app. Its in-place migrations add the matching index and `item_photos` table inside a transaction without replacing reports or claims. Back up your own database before any upgrade. Possible Matches appear on open item details when opposite-type reports have plausible public details. They are suggestions, not ownership decisions.
+
+Reports can optionally include 1–3 JPEG, PNG, or WebP photos (8 MB per file, 25 MB total request). The server checks actual image content, limits pixel dimensions, corrects orientation, and writes re-encoded WebP files with randomized names to `instance/uploads/`. This directory and the SQLite file are ignored by Git. Set `FINDIT_UPLOAD_DIR` before both startup and later restarts if you need another local upload directory, and keep it together with the database when moving a demo. The photo route serves only files associated with an item in SQLite. Browsers with camera support can use the camera control on the report form.
 
 To run the automated web and database checks on macOS or Linux:
 
@@ -91,11 +93,11 @@ Try the demo in this order:
 3. Claim the found item with an invented name, email, and identifying detail. The detail is private to the local reviewer screen.
 4. Use **Demo reviewer** in the footer (or mobile menu) to approve or reject the claim. Approval marks the item returned and prevents a second approval.
 
-The app has no login, uploads, email, or public deployment workflow. The campus and item pictures are generated demonstration imagery, not real lost property. Each new report uses a shared fictional demo reporter because there is no login. Andy will independently test the implemented database and app, then add the ER diagram, sample queries, and additional QA evidence.
+The app has no login, email, or public deployment workflow. Photo uploads are for local fictional demonstrations only; do not expose this app publicly without authentication, abuse controls, and a security review. The starter campus and item pictures are generated demonstration imagery, not real lost property. Each new report uses a shared fictional demo reporter because there is no login. Andy will independently test the implemented database and app, then add the ER diagram, sample queries, and additional QA evidence.
 
 ## Progress
 
-**Phase 1 proof of concept:** the Flask UI, SQLite-backed report and claim flow, explainable possible matches, responsive pages, and integration tests are implemented. Production authentication and real student data are outside this local demonstration.
+**Local proof of concept:** the Flask UI, SQLite-backed report and claim flow, explainable possible matches, responsive pages, local photo uploads and galleries, and integration tests are implemented. Production authentication and real student data are outside this local demonstration.
 
 Our [Phase 1 checklist](docs/phase-1.md) covers the course deliverables.
 

@@ -38,6 +38,18 @@ CREATE TABLE IF NOT EXISTS items (
     image_key TEXT CHECK (image_key IS NULL OR image_key IN ('bottle', 'earbuds', 'backpack'))
 );
 
+CREATE TABLE IF NOT EXISTS item_photos (
+    id INTEGER PRIMARY KEY,
+    item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+    position INTEGER NOT NULL CHECK (position BETWEEN 1 AND 3),
+    filename TEXT NOT NULL UNIQUE
+        CHECK (length(filename) = 37 AND filename GLOB '[0-9a-f]*.webp'),
+    width INTEGER NOT NULL CHECK (width BETWEEN 1 AND 1800),
+    height INTEGER NOT NULL CHECK (height BETWEEN 1 AND 1800),
+    byte_size INTEGER NOT NULL CHECK (byte_size > 0),
+    UNIQUE (item_id, position)
+);
+
 CREATE TABLE IF NOT EXISTS claims (
     id INTEGER PRIMARY KEY,
     item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE RESTRICT,
@@ -49,6 +61,7 @@ CREATE TABLE IF NOT EXISTS claims (
 );
 
 CREATE INDEX IF NOT EXISTS idx_items_date ON items(report_date DESC, id DESC);
+CREATE INDEX IF NOT EXISTS idx_item_photos_item ON item_photos(item_id, position);
 CREATE INDEX IF NOT EXISTS idx_items_kind_category_location
     ON items(kind, category_id, location_id);
 CREATE INDEX IF NOT EXISTS idx_items_match_candidates

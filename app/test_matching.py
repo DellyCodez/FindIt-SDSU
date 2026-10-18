@@ -126,6 +126,7 @@ def test_existing_database_upgrades_without_losing_records(tmp_path):
         before = {table: [tuple(row) for row in connection.execute(
             f"SELECT * FROM {table} ORDER BY id")] for table in tables}
         connection.execute("DROP INDEX idx_items_match_candidates")
+        connection.execute("DROP TABLE item_photos")
         connection.execute("PRAGMA user_version = 1")
     initialize_database(path)
     upgraded = SQLiteStore(path)
@@ -136,7 +137,7 @@ def test_existing_database_upgrades_without_losing_records(tmp_path):
     with closing(connect(path)) as connection:
         assert {table: [tuple(row) for row in connection.execute(
             f"SELECT * FROM {table} ORDER BY id")] for table in tables} == before
-        assert connection.execute("PRAGMA user_version").fetchone()[0] == 2
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 3
         assert connection.execute("PRAGMA foreign_key_check").fetchall() == []
         indexes = {row[1] for row in connection.execute("PRAGMA index_list(items)")}
         assert "idx_items_match_candidates" in indexes

@@ -1,6 +1,6 @@
 # FindIt SDSU — app build brief
 
-This is the original design brief for **Alexander's `work/app` branch**. The visual direction remains approved. The app now uses persistent SQLite records and includes the explainable Possible Matches feature. Use the README for current setup and `docs/database.md` for the implemented schema and matching rules. Andy's independent QA is still separate.
+This is the original design brief for **Alexander's `work/app` branch**. The visual direction remains approved. The app now uses persistent SQLite records, explainable Possible Matches, and local report photo uploads with galleries. The original no-upload Phase 1 bullets below are historical; use the README for current setup and `docs/database.md` for the implemented schema and matching rules. Andy's independent QA is still separate.
 
 **Read first:** `README.md`, `AGENTS.md`, `docs/database.md`, `docs/phase-1.md`. Do not change Andy's `work/database` or Samuel's `work/docs` branch. The sequence and checkboxes below preserve the original design plan; check the README and tests for current implementation status.
 

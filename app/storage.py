@@ -3,6 +3,8 @@
 from contextlib import contextmanager
 import os
 from pathlib import Path
+import re
+import secrets
 import sqlite3
 
 
@@ -25,10 +27,11 @@ def connect(path):
 class SQLiteStore:
     def __init__(self, path=None):
         self.path = Path(path or database_path()).resolve()
+        self.upload_dir = Path(os.environ.get("FINDIT_UPLOAD_DIR", self.path.parent / "uploads")).resolve()
         if not self.path.is_file():
             raise RuntimeError(f"Database missing at {self.path}. Run: python -m app.init_db")
         with self.connection() as connection:
-            if connection.execute("PRAGMA user_version").fetchone()[0] != 2:
+            if connection.execute("PRAGMA user_version").fetchone()[0] != 3:
                 raise RuntimeError("Database schema version is unknown. Run the documented setup.")
 
     @contextmanager
@@ -50,7 +53,9 @@ class SQLiteStore:
     ITEM_SELECT = """
         SELECT i.id, i.kind, i.title, i.description, i.report_date, i.status,
                i.category_id, i.location_id,
-               i.image_key AS image, c.name AS category, l.name AS location
+               i.image_key AS image, c.name AS category, l.name AS location,
+               (SELECT p.id FROM item_photos AS p WHERE p.item_id = i.id
+                ORDER BY p.position LIMIT 1) AS photo_id
         FROM items AS i
         JOIN categories AS c ON c.id = i.category_id
         JOIN locations AS l ON l.id = i.location_id
@@ -99,7 +104,28 @@ class SQLiteStore:
             row = connection.execute(self.ITEM_SELECT + " WHERE i.id = ?", (item_id,)).fetchone()
             return dict(row) if row else None
 
-    def create_item(self, data):
+    def get_photos(self, item_id):
+        with self.connection() as connection:
+            return [dict(row) for row in connection.execute("""
+                SELECT id, item_id, position, width, height, byte_size
+                FROM item_photos WHERE item_id = ? ORDER BY position
+            """, (item_id,))]
+
+    def photo_path(self, item_id, photo_id):
+        with self.connection() as connection:
+            row = connection.execute(
+                "SELECT filename FROM item_photos WHERE id = ? AND item_id = ?",
+                (photo_id, item_id),
+            ).fetchone()
+        if row is None or not re.fullmatch(r"[0-9a-f]{32}\.webp", row["filename"]):
+            return None
+        path = self.upload_dir / row["filename"]
+        return None if path.is_symlink() else path
+
+    def create_item(self, data, photos=()):
+        if len(photos) > 3:
+            raise ValueError("A report can have at most three photos")
+        written = []
         with self.connection() as connection:
             try:
                 connection.execute("BEGIN IMMEDIATE")
@@ -114,9 +140,25 @@ class SQLiteStore:
                     )
                 """, (DEMO_REPORTER_EMAIL, data["category"], data["location"],
                       data["title"], data["description"], data["kind"], data["report_date"]))
+                if photos:
+                    self.upload_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
+                for position, photo in enumerate(photos, start=1):
+                    filename = secrets.token_hex(16) + ".webp"
+                    path = self.upload_dir / filename
+                    fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+                    written.append(path)
+                    with os.fdopen(fd, "wb") as output:
+                        output.write(photo["content"])
+                    connection.execute("""
+                        INSERT INTO item_photos(item_id, position, filename, width, height, byte_size)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    """, (cursor.lastrowid, position, filename, photo["width"],
+                          photo["height"], len(photo["content"])))
                 connection.commit()
             except Exception:
                 connection.rollback()
+                for path in written:
+                    path.unlink(missing_ok=True)
                 raise
         return self.get_item(cursor.lastrowid)
 

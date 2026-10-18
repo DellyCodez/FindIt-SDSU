@@ -4,8 +4,14 @@
     <path d="M46 22h28v9H46zM48 31v10l-6 9v42a9 9 0 0 0 9 9h18a9 9 0 0 0 9-9V50l-6-9V31M42 58h36M49 75h22"/>
   {% elif item.category == 'Bags' %}
     <path d="M29 46h62v49a8 8 0 0 1-8 8H37a8 8 0 0 1-8-8V46ZM46 46v-9a14 14 0 0 1 28 0v9M29 68h62M52 68v11h16V68"/>
+  {% elif item|illustration_type == 'phone' %}
+    <rect x="37" y="12" width="46" height="96" rx="9"/><path d="M48 22h24M42 91h36"/><circle cx="60" cy="99" r="2"/><path d="M46 38h28v40H46z"/>
+  {% elif item|illustration_type == 'earbuds' %}
+    <path d="M35 30a13 13 0 0 1 26 0v26a7 7 0 0 1-14 0V39M85 30a13 13 0 0 0-26 0v26a7 7 0 0 0 14 0V39"/><path d="M43 81h34a9 9 0 0 1 9 9v8H34v-8a9 9 0 0 1 9-9Z"/>
+  {% elif item|illustration_type == 'laptop' %}
+    <rect x="23" y="24" width="74" height="57" rx="4"/><path d="M16 91h88l-8 8H24l-8-8ZM30 31h60v43H30z"/>
   {% elif item.category == 'Electronics' %}
-    <path d="M27 68V59a33 33 0 0 1 66 0v9M27 64h13v31H29a9 9 0 0 1-9-9V73a9 9 0 0 1 7-9ZM93 64H80v31h11a9 9 0 0 0 9-9V73a9 9 0 0 0-7-9Z"/>
+    <rect x="28" y="29" width="64" height="62" rx="8"/><path d="M47 29V18m26 11V18M47 102V91m26 11V91M28 49H17m11 23H17m86-23H92m11 23H92"/><circle cx="60" cy="60" r="16"/>
   {% elif item.category == 'Keys' %}
     <circle cx="43" cy="50" r="17"/><circle cx="43" cy="50" r="5"/><path d="m55 62 39 39h-13l-8-8-7 7-8-8 7-7-10-10"/>
   {% elif item.category == 'Clothing' %}
