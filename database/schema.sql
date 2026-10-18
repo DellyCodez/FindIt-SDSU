@@ -36,22 +36,28 @@ CREATE TABLE IF NOT EXISTS items (
                AND report_date GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'
                AND coalesce(date(report_date) = report_date, 0)),
     image_key TEXT CHECK (image_key IS NULL OR image_key IN ('bottle', 'earbuds', 'backpack')),
-    item_type TEXT CHECK (item_type IS NULL OR length(trim(item_type)) BETWEEN 2 AND 40),
+    item_type TEXT CHECK (item_type IS NULL OR item_type IN
+        ('Smartphone','Earbuds','Laptop','Backpack','Water Bottle','Keys','Wallet','Notebook','Clothing','Other')),
     brand TEXT CHECK (brand IS NULL OR length(trim(brand)) BETWEEN 1 AND 60),
-    model TEXT CHECK (model IS NULL OR length(trim(model)) BETWEEN 1 AND 60),
-    primary_color TEXT CHECK (primary_color IS NULL OR length(trim(primary_color)) BETWEEN 2 AND 40),
-    distinguishing_features TEXT CHECK (distinguishing_features IS NULL OR length(trim(distinguishing_features)) BETWEEN 3 AND 300)
+    model TEXT CHECK (model IS NULL OR length(trim(model)) BETWEEN 1 AND 80),
+    color TEXT CHECK (color IS NULL OR length(trim(color)) BETWEEN 1 AND 30),
+    distinguishing_features TEXT CHECK (distinguishing_features IS NULL OR
+        length(trim(distinguishing_features)) BETWEEN 3 AND 300),
+    contact_email TEXT CHECK (contact_email IS NULL OR
+        (length(contact_email) BETWEEN 5 AND 120 AND
+         contact_email LIKE '%_@_%._%' AND instr(contact_email, ' ') = 0))
 );
 
 CREATE TABLE IF NOT EXISTS item_photos (
     id INTEGER PRIMARY KEY,
     item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+    file_name TEXT NOT NULL UNIQUE
+        CHECK (length(file_name) = 37 AND substr(file_name, -5) = '.webp'),
     position INTEGER NOT NULL CHECK (position BETWEEN 1 AND 3),
-    filename TEXT NOT NULL UNIQUE
-        CHECK (length(filename) = 37 AND filename GLOB '[0-9a-f]*.webp'),
-    width INTEGER NOT NULL CHECK (width BETWEEN 1 AND 1800),
-    height INTEGER NOT NULL CHECK (height BETWEEN 1 AND 1800),
-    byte_size INTEGER NOT NULL CHECK (byte_size > 0),
+    mime_type TEXT NOT NULL CHECK (mime_type = 'image/webp'),
+    width INTEGER NOT NULL CHECK (width BETWEEN 1 AND 1600),
+    height INTEGER NOT NULL CHECK (height BETWEEN 1 AND 1600),
+    byte_count INTEGER NOT NULL CHECK (byte_count BETWEEN 1 AND 8388608),
     UNIQUE (item_id, position)
 );
 
@@ -66,12 +72,11 @@ CREATE TABLE IF NOT EXISTS claims (
 );
 
 CREATE INDEX IF NOT EXISTS idx_items_date ON items(report_date DESC, id DESC);
-CREATE INDEX IF NOT EXISTS idx_item_photos_item ON item_photos(item_id, position);
 CREATE INDEX IF NOT EXISTS idx_items_kind_category_location
     ON items(kind, category_id, location_id);
 CREATE INDEX IF NOT EXISTS idx_items_match_candidates
     ON items(kind, status, category_id, report_date);
-CREATE INDEX IF NOT EXISTS idx_items_type_candidates
+CREATE INDEX IF NOT EXISTS idx_items_match_type
     ON items(kind, status, category_id, item_type, report_date);
 CREATE INDEX IF NOT EXISTS idx_claims_item_status ON claims(item_id, status);
 CREATE UNIQUE INDEX IF NOT EXISTS one_approved_claim_per_item

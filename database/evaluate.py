@@ -8,34 +8,30 @@ from contextlib import closing
 from datetime import date, timedelta
 from pathlib import Path
 import random
-import re
 import sqlite3
 from statistics import median
 from tempfile import TemporaryDirectory
 from time import perf_counter_ns
 
 from app.init_db import initialize_database
-from app.matching import COLORS, possible_matches
-from app.item_types import recognized_type
+from app.matching import possible_matches
 from app.storage import SQLiteStore, connect
 
 
 ANCHOR = date(2026, 8, 1)
 RECORDS = 4800
 PAIRS = (
-    ("Drinkware", "Library", "Red thermos with yellow star", "A red thermos with a yellow star sticker on the base."),
-    ("Bags", "Student Union", "Green satchel with moon patch", "A green canvas satchel with an embroidered moon patch."),
-    ("Electronics", "Engineering Building", "Silver camera with blue strap", "A silver camera with a blue striped carrying strap."),
-    ("Keys", "West Commons", "Brass keys on orange cord", "Two brass keys attached to an orange woven cord."),
-    ("Clothing", "Campus Green", "Purple jacket with white zipper", "A purple jacket with a distinctive white front zipper."),
-    ("Other", "Arts and Letters", "Yellow notebook with sun drawing", "A yellow notebook with a small sun drawing on the cover."),
-    ("Electronics", "Library", "Black iPhone 14 Pro Max with silver star", "A black phone with a silver star sticker on the back."),
+    ("Drinkware", "Library", "Red thermos with yellow star", "A red thermos with a yellow star sticker on the base.", "Water Bottle", "Red"),
+    ("Bags", "Student Union", "Green backpack with moon patch", "A green canvas backpack with an embroidered moon patch.", "Backpack", "Green"),
+    ("Electronics", "Engineering Building", "Silver laptop with blue strap", "A silver laptop in a sleeve with a blue striped strap.", "Laptop", "Silver"),
+    ("Keys", "West Commons", "Brass keys on orange cord", "Two brass keys attached to an orange woven cord.", "Keys", "Gold"),
+    ("Clothing", "Campus Green", "Purple jacket with white zipper", "A purple jacket with a distinctive white front zipper.", "Clothing", "Purple"),
+    ("Other", "Arts and Letters", "Yellow notebook with sun drawing", "A yellow notebook with a small sun drawing on the cover.", "Notebook", "Yellow"),
 )
 
 CANDIDATE_SQL = """
     SELECT i.id FROM items AS i {index_hint}
     WHERE i.kind = ? AND i.status = 'Open' AND i.category_id = ?
-      AND (i.item_type = ? OR i.item_type IS NULL OR i.item_type = 'Other' OR ? IS NULL)
       AND i.report_date BETWEEN ? AND ?
     ORDER BY i.report_date DESC LIMIT 300
 """
@@ -77,29 +73,16 @@ def populate(connection):
         VALUES (?,?,?,?,?,?,?)
     """, rows)
     known = []
-    for category, location, title, description in PAIRS:
-        item_type = recognized_type({"category": category, "title": title, "item_type": None})
-        primary_color = next((word for word in re.findall(r"[a-z]+", title.lower()) if word in COLORS), None)
-        phone = item_type == "Smartphone"
+    for category, location, title, description, item_type, color in PAIRS:
         ids = []
         for kind, day in (("Lost", "2026-09-26"), ("Found", "2026-09-27")):
             cursor = connection.execute("""
-                INSERT INTO items(reporter_id,category_id,location_id,title,description,kind,report_date,
-                                  item_type,primary_color,brand,model)
-                VALUES (1,?,?,?,?,?,?,?,?,?,?)
-            """, (categories[category], locations[location], title, description, kind, day,
-                  item_type, primary_color, "Apple" if phone else None,
-                  "iPhone 14 Pro Max" if phone else None))
+                INSERT INTO items(reporter_id,category_id,location_id,title,description,kind,report_date,item_type,color)
+                VALUES (1,?,?,?,?,?,?,?,?)
+            """, (categories[category], locations[location], title, description, kind, day, item_type, color))
             ids.append(cursor.lastrowid)
         known.append(ids)
-    decoy = connection.execute("""
-        INSERT INTO items(reporter_id,category_id,location_id,title,description,kind,report_date,
-                          item_type,primary_color)
-        VALUES (1,?,?,?,?,?,?,?,?)
-    """, (categories["Electronics"], locations["Library"], "Black wireless earbuds with silver star",
-          "Black earbuds in a case with a silver star sticker.", "Found", "2026-09-27",
-          "Earbuds", "black")).lastrowid
-    return known, decoy
+    return known
 
 
 def measure(connection, sql, params, repetitions=200):
@@ -119,16 +102,16 @@ def run():
         with closing(connect(path)) as connection:
             connection.execute("BEGIN IMMEDIATE")
             connection.execute("DELETE FROM items")  # only the disposable evaluation database
-            known, decoy = populate(connection)
+            known = populate(connection)
             connection.commit()
             connection.execute("ANALYZE")
             count = connection.execute("SELECT COUNT(*) FROM items").fetchone()[0]
-            assert count == RECORDS + 2 * len(PAIRS) + 1
+            assert count == RECORDS + 2 * len(PAIRS)
             print(f"Fictional evaluation reports: {count} in a temporary SQLite database")
             print("Foreign key check:", len(connection.execute("PRAGMA foreign_key_check").fetchall()), "violations")
             print("JOIN sample:", [tuple(row) for row in connection.execute(JOIN_SQL).fetchall()[:2]])
             print("Aggregate sample:", [tuple(row) for row in connection.execute(AGGREGATE_SQL).fetchall()[:2]])
-            params = ("Found", 1, "Smartphone", "Smartphone", "2026-09-01", "2026-09-30")
+            params = ("Found", 3, "2026-09-01", "2026-09-30")
             indexed = CANDIDATE_SQL.format(index_hint="INDEXED BY idx_items_match_candidates")
             scan = CANDIDATE_SQL.format(index_hint="NOT INDEXED")
             print("Indexed plan:", [row[3] for row in connection.execute("EXPLAIN QUERY PLAN " + indexed, params)])
@@ -162,9 +145,13 @@ def run():
             correct += known_found in suggested
         print(f"Known-pair retrieval: {correct}/{len(known)} curated fictional pairs in top 3 suggestions")
         assert correct == len(known)
-        phone_suggestions = [m["item"]["id"] for m in possible_matches(store, store.get_item(known[-1][0]), limit=20)]
-        print(f"Known incompatible earbuds decoy excluded: {decoy not in phone_suggestions}")
-        assert decoy not in phone_suggestions
+        phone = store.create_item(dict(kind="Lost", title="iPhone 14 Pro Max", description="Black phone with a chipped camera ring and crescent sticker.",
+                                      category="Electronics", location="Library", report_date="2026-09-26", item_type="Smartphone", color="Black"))
+        earbuds = store.create_item(dict(kind="Found", title="Black earbuds in case", description="Black case with a crescent sticker near the library.",
+                                        category="Electronics", location="Library", report_date="2026-09-27", item_type="Earbuds", color="Black"))
+        negative = earbuds["id"] not in [match["item"]["id"] for match in possible_matches(store, phone)]
+        print("Curated incompatible-type false positive excluded:", negative)
+        assert negative
 
 
 if __name__ == "__main__":

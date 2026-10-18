@@ -7,6 +7,7 @@
   <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
   <title>{% block title %}FindIt SDSU{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='project.css') }}">
   <script defer src="{{ url_for('static', filename='site.js') }}"></script>
 </head>
 <body>
@@ -17,11 +18,15 @@
       <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="main-nav" aria-label="Open menu"><span></span><span></span><span></span></button>
       <nav class="main-nav" id="main-nav" aria-label="Main navigation">
         <a href="{{ url_for('items') }}">Browse Items</a>
-        <a href="{{ url_for('home') }}#how-it-works">How It Works</a>
         <a href="{{ url_for('new_item') }}">Report Item</a>
-        <a class="mobile-review" href="{{ url_for('review_claims') }}">Demo review</a>
+        <a href="{{ url_for('about') }}">About</a>
+        <a href="{{ url_for('product') }}">Our Product</a>
+        <a href="{{ url_for('blog') }}">Blog</a>
+        <a href="{{ url_for('resources') }}">Resources</a>
+        {% if presenter_authenticated %}<a href="{{ url_for('review_claims') }}">Review</a>{% endif %}
+        {% if presenter_auth_enabled %}{% if presenter_authenticated %}<form class="nav-auth" method="post" action="{{ url_for('presenter_logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button type="submit">Sign out</button></form>{% else %}<a class="nav-auth" href="{{ url_for('presenter_login') }}">Presenter sign in</a>{% endif %}{% endif %}
       </nav>
-      <span class="nav-note">Independent student project <span aria-hidden="true">ⓘ</span></span>
+      {% if not presenter_auth_enabled %}<span class="nav-note">Independent student project <span aria-hidden="true">ⓘ</span></span>{% endif %}
     </div>
   </header>
   <main id="main">
@@ -33,7 +38,7 @@
   <footer class="site-footer">
     <div class="container footer-grid">
       <div><a class="brand footer-brand" href="{{ url_for('home') }}"><span class="pin-mark" aria-hidden="true"><span></span></span><span>FindIt <strong>SDSU</strong></span></a><p>A simpler way to reconnect with what matters.</p></div>
-      <div class="footer-links"><a href="{{ url_for('items') }}">Browse reports</a><a href="{{ url_for('new_item') }}">Report an item</a><a href="{{ url_for('review_claims') }}">Demo reviewer</a></div>
+      <div class="footer-links"><a href="{{ url_for('items') }}">Browse reports</a><a href="{{ url_for('new_item') }}">Report an item</a><a href="{{ url_for('about') }}">About</a><a href="{{ url_for('product') }}">Our Product</a><a href="{{ url_for('blog') }}">Blog</a><a href="{{ url_for('resources') }}">Resources</a>{% if presenter_authenticated %}<a href="{{ url_for('review_claims') }}">Claim review</a>{% endif %}</div>
     </div>
     <div class="container footer-bottom">Student project — not an official SDSU service. <span>Fictional reports for a classroom demonstration.</span></div>
   </footer>

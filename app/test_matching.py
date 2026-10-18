@@ -5,16 +5,42 @@ from datetime import date, timedelta
 
 from app import create_app
 from app.init_db import initialize_database
-from app.matching import possible_matches
+from app.matching import possible_matches, words
 from app.storage import SQLiteStore, connect
 
 
-def report(store, kind, title, description, category="Drinkware", location="Library", days_ago=0):
+def report(store, kind, title, description, category="Drinkware", location="Library", days_ago=0, **attributes):
     return store.create_item(dict(
         kind=kind, title=title, description=description,
         category=category, location=location,
         report_date=(date.today() - timedelta(days=days_ago)).isoformat(),
-    ))
+        **attributes))
+
+
+def test_match_explanations_ignore_demo_labels_and_long_generated_numbers():
+    assert words("Fictional demo bottle 1792298462624 with crescent sticker") == {"crescent", "sticker"}
+
+
+def test_structured_phone_matching_rejects_earbuds_and_generic_case(tmp_path):
+    path = initialize_database(tmp_path / "phone.sqlite3")
+    store = SQLiteStore(path)
+    lost = report(store, "Lost", "iPhone 14 Pro Max", "Black phone with a chipped camera ring and crescent sticker.",
+                  category="Electronics", item_type="Smartphone", brand="Apple", model="iPhone 14 Pro Max", color="Black")
+    earbuds = report(store, "Found", "Black earbuds in case", "Black case with a crescent sticker near the library.",
+                     category="Electronics", item_type="Earbuds", color="Black")
+    unrelated = report(store, "Found", "Black iPhone", "Black case with a plain protective cover.",
+                       category="Electronics", item_type="Smartphone", brand="Apple", color="Black")
+    correct = report(store, "Found", "iPhone 14 Pro Max", "Black phone with chipped camera ring and crescent sticker.",
+                     category="Electronics", item_type="Smartphone", brand="Apple", model="iPhone 14 Pro Max", color="Black")
+    wrong_model = report(store, "Found", "iPhone 13 Pro Max", "Black phone with a chipped camera ring and crescent sticker.",
+                         category="Electronics", item_type="Smartphone", brand="Apple", model="iPhone 13 Pro Max", color="Black")
+    matches = possible_matches(SQLiteStore(path), lost, limit=10)
+    assert [match["item"]["id"] for match in matches] == [correct["id"]]
+    assert earbuds["id"] not in [match["item"]["id"] for match in matches]
+    assert unrelated["id"] not in [match["item"]["id"] for match in matches]
+    assert wrong_model["id"] not in [match["item"]["id"] for match in matches]
+    assert "Matching model: iPhone 14 Pro Max" in matches[0]["reasons"]
+    assert all("probability" not in reason.lower() for reason in matches[0]["reasons"])
 
 
 def test_known_pair_reasons_and_false_leads(tmp_path):
@@ -37,7 +63,7 @@ def test_known_pair_reasons_and_false_leads(tmp_path):
     assert matches[0]["score"] >= 60
     assert "Same category" in matches[0]["reasons"]
     assert "Same location" in matches[0]["reasons"]
-    assert "Matching color" in matches[0]["reasons"]
+    assert "red" in matches[0]["reasons"][-1]
     reverse = possible_matches(store, found)
     assert lost["id"] in [match["item"]["id"] for match in reverse]
     assert all(match["item"]["kind"] == "Lost" for match in reverse)
@@ -46,7 +72,7 @@ def test_known_pair_reasons_and_false_leads(tmp_path):
     page = create_app(store).test_client().get(f"/items/{lost['id']}")
     assert b"Possible matches" in page.data
     assert b"Red water bottle" in page.data
-    assert b"Similarity" in page.data
+    assert b"Similarity score" in page.data
     assert b"proof of ownership" in page.data
 
 
@@ -125,13 +151,13 @@ def test_existing_database_upgrades_without_losing_records(tmp_path):
         tables = ("users", "categories", "locations", "items", "claims")
         before = {table: [tuple(row) for row in connection.execute(
             f"SELECT * FROM {table} ORDER BY id")] for table in tables}
-        connection.execute("DROP INDEX idx_items_type_candidates")
-        for field in ("distinguishing_features", "primary_color", "model", "brand", "item_type"):
-            connection.execute(f"ALTER TABLE items DROP COLUMN {field}")
+        connection.execute("DROP TABLE item_photos")
+        connection.execute("DROP INDEX idx_items_match_candidates")
+        connection.execute("DROP INDEX idx_items_match_type")
+        for column in ("item_type", "brand", "model", "color", "contact_email", "distinguishing_features"):
+            connection.execute(f"ALTER TABLE items DROP COLUMN {column}")
         before = {table: [tuple(row) for row in connection.execute(
             f"SELECT * FROM {table} ORDER BY id")] for table in tables}
-        connection.execute("DROP INDEX idx_items_match_candidates")
-        connection.execute("DROP TABLE item_photos")
         connection.execute("PRAGMA user_version = 1")
     initialize_database(path)
     upgraded = SQLiteStore(path)
@@ -142,10 +168,12 @@ def test_existing_database_upgrades_without_losing_records(tmp_path):
     with closing(connect(path)) as connection:
         assert {table: [tuple(row)[:len(before[table][0])] for row in connection.execute(
             f"SELECT * FROM {table} ORDER BY id")] for table in tables} == before
-        assert connection.execute("PRAGMA user_version").fetchone()[0] == 4
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 6
         assert connection.execute("PRAGMA foreign_key_check").fetchall() == []
         indexes = {row[1] for row in connection.execute("PRAGMA index_list(items)")}
         assert "idx_items_match_candidates" in indexes
+        assert "item_photos" in {row[0] for row in connection.execute(
+            "SELECT name FROM sqlite_master WHERE type='table'")}
         plan = " ".join(row[3] for row in connection.execute("""
             EXPLAIN QUERY PLAN SELECT id FROM items
             WHERE kind = ? AND status = 'Open' AND category_id = ?

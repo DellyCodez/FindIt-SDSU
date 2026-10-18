@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block title %}Blog — FindIt SDSU{% endblock %}
+{% block content %}
+<div class="project-page">
+  <section class="page-intro"><div class="container"><p class="eyebrow">Project journal</p><h1>In the team's own words.</h1><p class="lead">Each project member has a space for an original reflection. Alexander's requested draft is below for his personal review; Andy's and Samuel's writing is pending.</p><div class="intro-meta"><span>Alexander</span><span>Andy</span><span>Samuel</span></div></div></section>
+  <section class="block"><div class="container project-blog-grid">
+    <a class="project-blog-card" href="#alexander"><p class="eyebrow">Entry 01</p><h2>Alexander</h2><p>Application and database integration.</p><span>Draft for personal review →</span></a>
+    <a class="project-blog-card" href="#andy"><p class="eyebrow">Entry 02</p><h2>Andy</h2><p>Independent QA and database support.</p><span>Original writing pending →</span></a>
+    <a class="project-blog-card" href="#samuel"><p class="eyebrow">Entry 03</p><h2>Samuel</h2><p>Project communication and presentation.</p><span>Original writing pending →</span></a>
+  </div></section>
+  <div class="project-narrow"><article class="project-blog-entry" id="alexander"><p class="eyebrow">01 / Application &amp; schema</p><h2>Alexander Hills</h2><p class="project-draft-label">Draft supplied by Alexander · personal review required before class submission</p><p>For FindIt SDSU, I took responsibility for developing the main web application and integrating the SQLite database. I wanted to build something that went beyond a basic database assignment, so I focused on features like reporting lost and found items, uploading photos, searching through reports, and finding possible matches. One of the biggest improvements was making the matching system more specific, so it wouldn't suggest completely different items just because they shared a color or category. I also worked on connecting the claim process to the database so records update correctly when an item is returned. What I like about this project is that we're applying what we learned in CS 514 to something students could actually use on campus. There's still room to improve it, but our goal was to create a working prototype that feels like a real application.</p></article>
+    <article class="project-blog-entry" id="andy"><p class="eyebrow">02 / QA &amp; database support</p><h2>Andy</h2><div class="project-placeholder"><strong>Original entry pending.</strong><p>Andy will provide his own reflection on testing, data design, or lessons learned.</p></div></article>
+    <article class="project-blog-entry" id="samuel"><p class="eyebrow">03 / Website &amp; presentation</p><h2>Samuel</h2><div class="project-placeholder"><strong>Original entry pending.</strong><p>Samuel will provide his own reflection on communicating and presenting the project.</p></div></article>
+  </div>
+</div>
+{% endblock %}

@@ -1,17 +1,19 @@
 <div class="placeholder-art" aria-hidden="true">
   <svg viewBox="0 0 120 120" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-  {% if item.category == 'Drinkware' %}
+  {% if item.item_type == 'Smartphone' or 'iphone' in item.title|lower or 'smartphone' in item.title|lower %}
+    <rect x="37" y="12" width="46" height="96" rx="9"/><path d="M52 20h16M54 98h12"/><circle cx="60" cy="59" r="18"/><path d="M53 59h14M60 52v14"/>
+  {% elif item.item_type == 'Laptop' or 'laptop' in item.title|lower %}
+    <rect x="24" y="25" width="72" height="54" rx="4"/><path d="M15 88h90l-8 9H23l-8-9ZM44 88l-3 4h38l-3-4"/>
+  {% elif item.item_type == 'Notebook' or 'notebook' in item.title|lower %}
+    <rect x="30" y="15" width="64" height="90" rx="4"/><path d="M42 15v90M53 42h28M53 54h28M53 66h20M24 28h12M24 44h12M24 60h12M24 76h12"/>
+  {% elif item.item_type == 'Wallet' or 'wallet' in item.title|lower %}
+    <rect x="20" y="34" width="80" height="62" rx="7"/><path d="M20 47h80M69 59h31v25H69a8 8 0 0 1-8-8v-9a8 8 0 0 1 8-8Z"/><circle cx="74" cy="71" r="2"/>
+  {% elif item.category == 'Drinkware' %}
     <path d="M46 22h28v9H46zM48 31v10l-6 9v42a9 9 0 0 0 9 9h18a9 9 0 0 0 9-9V50l-6-9V31M42 58h36M49 75h22"/>
   {% elif item.category == 'Bags' %}
     <path d="M29 46h62v49a8 8 0 0 1-8 8H37a8 8 0 0 1-8-8V46ZM46 46v-9a14 14 0 0 1 28 0v9M29 68h62M52 68v11h16V68"/>
-  {% elif item|illustration_type == 'phone' %}
-    <rect x="37" y="12" width="46" height="96" rx="9"/><path d="M48 22h24M42 91h36"/><circle cx="60" cy="99" r="2"/><path d="M46 38h28v40H46z"/>
-  {% elif item|illustration_type == 'earbuds' %}
-    <path d="M35 30a13 13 0 0 1 26 0v26a7 7 0 0 1-14 0V39M85 30a13 13 0 0 0-26 0v26a7 7 0 0 0 14 0V39"/><path d="M43 81h34a9 9 0 0 1 9 9v8H34v-8a9 9 0 0 1 9-9Z"/>
-  {% elif item|illustration_type == 'laptop' %}
-    <rect x="23" y="24" width="74" height="57" rx="4"/><path d="M16 91h88l-8 8H24l-8-8ZM30 31h60v43H30z"/>
   {% elif item.category == 'Electronics' %}
-    <rect x="28" y="29" width="64" height="62" rx="8"/><path d="M47 29V18m26 11V18M47 102V91m26 11V91M28 49H17m11 23H17m86-23H92m11 23H92"/><circle cx="60" cy="60" r="16"/>
+    <path d="M27 68V59a33 33 0 0 1 66 0v9M27 64h13v31H29a9 9 0 0 1-9-9V73a9 9 0 0 1 7-9ZM93 64H80v31h11a9 9 0 0 0 9-9V73a9 9 0 0 0-7-9Z"/>
   {% elif item.category == 'Keys' %}
     <circle cx="43" cy="50" r="17"/><circle cx="43" cy="50" r="5"/><path d="m55 62 39 39h-13l-8-8-7 7-8-8 7-7-10-10"/>
   {% elif item.category == 'Clothing' %}

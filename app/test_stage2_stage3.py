@@ -1,11 +1,13 @@
-"""Structured reports, conservative matching, privacy, and end-to-end claim checks."""
+"""Published v4 compatibility, presenter access, and a protected end-to-end journey."""
 
+from contextlib import closing
 from datetime import date, timedelta
 from io import BytesIO
 import sqlite3
 
 from PIL import Image
 import pytest
+from werkzeug.security import generate_password_hash
 
 from app import create_app
 from app.init_db import initialize_database
@@ -13,192 +15,159 @@ from app.matching import possible_matches, same_model
 from app.storage import SQLiteStore, connect
 
 
-TODAY = date.today()
-
-
-def setup(tmp_path):
-    path = initialize_database(tmp_path / "stage2.sqlite3")
-    store = SQLiteStore(path)
-    client = create_app(store).test_client()
-    client.get("/items/new")
-    with client.session_transaction() as session:
-        csrf = session["csrf_token"]
-    return path, store, client, csrf
-
-
-def item(store, kind, item_type, title, description, *, category="Electronics",
-         color="Black", brand=None, model=None, location="Library", days=0, features=None):
-    return store.create_item({
-        "kind": kind, "title": title, "description": description,
-        "category": category, "location": location, "report_date": (TODAY + timedelta(days=days)).isoformat(),
-        "item_type": item_type, "primary_color": color, "brand": brand,
-        "model": model, "distinguishing_features": features,
-    })
-
-
-def ids(store, source):
-    return [match["item"]["id"] for match in possible_matches(store, source, limit=20)]
-
-
-def test_phone_vs_phone_earbuds_color_generic_words_and_missing_brand(tmp_path):
-    assert same_model("iphone 14 pro max", "14 pro max")
-    assert not same_model("galaxy s23", "pixel s23")
-    _, store, _, _ = setup(tmp_path)
-    lost = item(store, "Lost", "Smartphone", "iPhone 14 Pro Max",
-                "Black phone with a silver star sticker under the case.",
-                brand="Apple", model="iPhone 14 Pro Max", features="Silver star sticker")
-    same = item(store, "Found", "Smartphone", "iPhone 14 Pro Max",
-                "Black phone with a silver star sticker.",
-                brand="Apple", model="iPhone 14 Pro Max")
-    earbuds = item(store, "Found", "Earbuds", "Wireless earbuds",
-                    "Black earbuds in a case with a silver star sticker.")
-    wrong_color = item(store, "Found", "Smartphone", "iPhone 14 Pro Max",
-                       "Blue phone with a silver star sticker.",
-                       color="Blue", brand="Apple", model="iPhone 14 Pro Max")
-    unrelated = item(store, "Found", "Smartphone", "Galaxy phone",
-                     "Black phone in a case near the library.")
-    no_brand = item(store, "Found", "Smartphone", "Black phone with star",
-                    "A black phone with a silver star sticker and no visible model.")
-    short_model = item(store, "Found", "Smartphone", "Black iPhone with star",
-                       "Black phone with a silver star sticker.", brand="Apple", model="14 Pro Max")
-    different_model = item(store, "Found", "Smartphone", "Black iPhone with star",
-                           "Black phone with a silver star sticker.", brand="Apple", model="iPhone 14 Pro")
-    suggestions = ids(store, lost)
-    assert same["id"] in suggestions
-    assert no_brand["id"] in suggestions
-    assert short_model["id"] in suggestions
-    assert different_model["id"] not in suggestions
-    assert earbuds["id"] not in suggestions
-    assert wrong_color["id"] not in suggestions
-    assert unrelated["id"] not in suggestions
-    assert ids(store, earbuds) == []
-    assert all("case" not in " ".join(m["reasons"]).lower() for m in possible_matches(store, lost))
-
-
-def test_water_bottle_legacy_fallback_and_date_boundaries(tmp_path):
-    _, store, _, _ = setup(tmp_path)
-    lost = item(store, "Lost", "Water Bottle", "Red water bottle",
-                "Matte bottle with a moon sticker near the lid.",
-                category="Drinkware", color="Red", days=-50)
-    within = item(store, "Found", "Water Bottle", "Red water bottle",
-                  "Matte bottle with a moon sticker near the lid.",
-                  category="Drinkware", color="Red", days=-5)
-    too_late = item(store, "Found", "Water Bottle", "Red water bottle",
-                    "Matte bottle with a moon sticker near the lid.",
-                    category="Drinkware", color="Red", days=-4)
-    early = item(store, "Found", "Water Bottle", "Red water bottle",
-                 "Matte bottle with a moon sticker near the lid.",
-                 category="Drinkware", color="Red", days=-52)
-    too_early = item(store, "Found", "Water Bottle", "Red water bottle",
-                     "Matte bottle with a moon sticker near the lid.",
-                     category="Drinkware", color="Red", days=-53)
-    assert within["id"] in ids(store, lost)
-    assert early["id"] in ids(store, lost)
-    assert too_late["id"] not in ids(store, lost)
-    assert too_early["id"] not in ids(store, lost)
-    # Old reports have no invented attributes; the title can still identify an obvious type.
-    legacy = store.create_item(dict(kind="Found", title="Red water bottle",
-        description="Matte bottle with a moon sticker near the lid.",
-        category="Drinkware", location="Library", report_date=(TODAY - timedelta(days=49)).isoformat()))
-    assert store.get_item(legacy["id"])["item_type"] is None
-    assert legacy["id"] in ids(store, lost)
-
-
-def test_form_categories_privacy_and_duplicate_claim(tmp_path):
-    _, store, client, csrf = setup(tmp_path)
-    fields = dict(csrf_token=csrf, kind="Found", title="Black phone with a star",
-                  description="A black phone with a silver star sticker on its back.",
-                  category="Electronics", item_type="Smartphone", primary_color="Black",
-                  location="Library", report_date=TODAY.isoformat())
-    form = client.get("/items/new").data
-    assert b'data-category="Electronics"' in form and b'data-category="Drinkware"' in form
-    assert b'name="brand"' in form and b'name="distinguishing_features"' in form
-    for changes, message in [
-        ({"item_type": "Earbuds", "category": "Drinkware"}, b"Choose an item type"),
-        ({"item_type": ""}, b"Choose an item type"),
-        ({"description": "Email me at student@example.test about this black phone."}, b"Remove email addresses"),
-        ({"description": "Call 619-555-0199 about this black phone."}, b"Remove email addresses"),
-        ({"title": "student@example.test phone"}, b"Remove email addresses"),
-    ]:
-        page = client.post("/items/new", data={**fields, **changes})
-        assert message in page.data
-        assert len(store.list_items()) == 6
-    assert client.post("/items/new", data=fields).status_code == 302
-    found = store.list_items({"q": "Black phone with a star"})[0]
-    claim = dict(csrf_token=csrf, name="Fictional Student", contact="student@example.test",
-                 explanation="There is a hidden star sticker beneath the case.")
-    assert client.post(f"/items/{found['id']}/claim", data=claim).status_code == 302
-    duplicate = client.post(f"/items/{found['id']}/claim", data=claim)
-    assert duplicate.status_code == 409
-    assert b"already recorded" in duplicate.data
-    assert len(store.list_claims()) == 1
-    public = client.get(f"/items/{found['id']}").data
-    assert b"student@example.test" not in public
-    assert claim["explanation"].encode() not in public
-    assert b"student@example.test" in client.get("/review/claims").data
-    assert client.get("/review/claims", environ_overrides={"REMOTE_ADDR": "203.0.113.9"}).status_code == 403
-
-
-def test_structured_schema_checks_and_restart(tmp_path):
-    path, store, _, _ = setup(tmp_path)
-    found = item(store, "Found", "Smartphone", "Black iPhone",
-                 "Black iPhone with silver star sticker.", brand="Apple",
-                 model="iPhone 14 Pro Max", features="Silver star sticker")
-    assert SQLiteStore(path).get_item(found["id"])["model"] == "iPhone 14 Pro Max"
-    with connect(path) as db:
-        assert db.execute("PRAGMA user_version").fetchone()[0] == 4
-        assert db.execute("PRAGMA foreign_key_check").fetchall() == []
-        with pytest.raises(sqlite3.IntegrityError):
-            db.execute("UPDATE items SET primary_color = '' WHERE id = ?", (found["id"],))
-        with pytest.raises(sqlite3.IntegrityError):
-            db.execute("UPDATE items SET category_id = 99999 WHERE id = ?", (found["id"],))
-    initialize_database(path)
-    assert SQLiteStore(path).get_item(found["id"])["item_type"] == "Smartphone"
+PUBLIC_ORIGIN = "https://localhost"
 
 
 def image_bytes(color):
-    out = BytesIO()
-    Image.new("RGB", (80, 80), color).save(out, "PNG")
-    out.seek(0)
-    return out
+    stream = BytesIO()
+    Image.new("RGB", (80, 80), color).save(stream, "PNG")
+    stream.seek(0)
+    return stream
 
 
-def test_full_photo_match_claim_approval_restart(tmp_path):
-    path, store, client, csrf = setup(tmp_path)
-    lost = dict(csrf_token=csrf, kind="Lost", title="Black iPhone with star",
-                description="Black iPhone with a silver star sticker on the back.",
-                category="Electronics", item_type="Smartphone", brand="Apple",
-                model="iPhone 14 Pro Max", primary_color="Black", location="Library",
-                report_date=(TODAY - timedelta(days=1)).isoformat(),
-                photos=[(image_bytes(c), f"{c}.png") for c in ("red", "green", "blue")])
-    assert client.post("/items/new", data=lost, content_type="multipart/form-data").status_code == 302
-    lost_id = store.list_items({"q": "Black iPhone with star"})[0]["id"]
-    found = {**lost, "kind": "Found", "title": "Found black iPhone with star",
-             "photos": [(image_bytes("purple"), "found.png")],
-             "report_date": TODAY.isoformat()}
-    assert client.post("/items/new", data=found, content_type="multipart/form-data").status_code == 302
-    found_id = store.list_items({"q": "Found black iPhone"})[0]["id"]
-    assert found_id in ids(store, store.get_item(lost_id))
-    assert len(store.get_photos(lost_id)) == 3
-    detail = client.get(f"/items/{lost_id}").data
-    assert b"Similarity" in detail and b"Same model" in detail
-    for photo in store.get_photos(lost_id):
-        assert client.get(f"/items/{lost_id}/photos/{photo['id']}").status_code == 200
-    claim = dict(csrf_token=csrf, name="Demo One", contact="one@example.test",
-                 explanation="The hidden star sticker has a tiny scratch.")
-    second = {**claim, "name": "Demo Two", "contact": "two@example.test"}
-    assert client.post(f"/items/{found_id}/claim", data=claim).status_code == 302
-    assert client.post(f"/items/{found_id}/claim", data=second).status_code == 302
-    claims = store.list_claims()
-    assert b"review-image" in client.get("/review/claims").data
-    assert client.post(f"/review/claims/{claims[1]['id']}", data={"csrf_token": csrf, "action": "approve"}).status_code == 302
-    assert not store.review_claim(claims[0]["id"], "approve")
+def csrf_token(client):
+    with client.session_transaction() as session:
+        return session["csrf_token"]
+
+
+def report_data(csrf, kind, **changes):
+    values = dict(csrf_token=csrf, kind=kind, title="Matte red bottle with crescent sticker",
+                  description="Matte red bottle with black loop lid and pale crescent sticker near its base.",
+                  category="Drinkware", item_type="Water Bottle", location="Library",
+                  report_date=date.today().isoformat(), brand="Sierra Bottle", model="Trail 32",
+                  color="Red", contact_email=f"{kind.lower()}-reporter@example.test")
+    return {**values, **changes}
+
+
+def test_published_v4_layout_migrates_without_losing_photos_or_claims(tmp_path):
+    path = initialize_database(tmp_path / "published-v4.sqlite3")
+    store = SQLiteStore(path)
+    encoded = BytesIO()
+    Image.new("RGB", (80, 80), "red").save(encoded, "WEBP")
+    data = report_data("", "Found")
+    created = store.create_item(data, [dict(data=encoded.getvalue(), mime_type="image/webp",
+                                            width=80, height=80, byte_count=len(encoded.getvalue()))])
+    claim = store.submit_claim(created["id"], dict(name="Fictional Owner", contact="owner@example.test",
+                                                   explanation="A hidden scratch is under the black lid."))
+    photo = store.list_photos(created["id"])[0]
+    with closing(connect(path)) as connection:
+        connection.execute("ALTER TABLE items ADD COLUMN primary_color TEXT")
+        connection.execute("UPDATE items SET primary_color = color WHERE id = ?", (created["id"],))
+        connection.execute("ALTER TABLE items DROP COLUMN color")
+        connection.execute("ALTER TABLE items DROP COLUMN contact_email")
+        connection.execute("DROP INDEX idx_items_match_type")
+        connection.execute("ALTER TABLE item_photos RENAME COLUMN file_name TO filename")
+        connection.execute("ALTER TABLE item_photos RENAME COLUMN byte_count TO byte_size")
+        connection.execute("ALTER TABLE item_photos DROP COLUMN mime_type")
+        connection.execute("PRAGMA user_version = 4")
+        before = {table: [tuple(row) for row in connection.execute(f"SELECT * FROM {table} ORDER BY id")]
+                  for table in ("users", "categories", "locations", "claims")}
+    initialize_database(path)
+    upgraded = SQLiteStore(path)
+    assert upgraded.get_item(created["id"])["color"] == "Red"
+    assert upgraded.get_item(created["id"])["model"] == "Trail 32"
+    assert upgraded.get_photo(photo["id"])["mime_type"] == "image/webp"
+    assert (upgraded.upload_dir / upgraded.get_photo(photo["id"])["file_name"]).is_file()
+    assert upgraded.list_claims()[0]["id"] == claim["id"]
+    with closing(connect(path)) as connection:
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 6
+        assert connection.execute("PRAGMA foreign_key_check").fetchall() == []
+        assert {table: [tuple(row) for row in connection.execute(f"SELECT * FROM {table} ORDER BY id")]
+                for table in before} == before
+    initialize_database(path)
+    assert len(SQLiteStore(path).list_photos(created["id"])) == 1
+
+
+def test_public_mode_requires_secrets_and_restricts_actions(tmp_path, monkeypatch):
+    path = initialize_database(tmp_path / "protected.sqlite3")
+    monkeypatch.setenv("FINDIT_PUBLIC", "1")
+    monkeypatch.setenv("FINDIT_ALLOWED_HOSTS", "localhost")
+    monkeypatch.delenv("SECRET_KEY", raising=False)
+    monkeypatch.delenv("PRESENTER_PASSWORD_HASH", raising=False)
+    with pytest.raises(RuntimeError, match="SECRET_KEY"):
+        create_app(SQLiteStore(path))
+    monkeypatch.setenv("SECRET_KEY", "fictional-test-secret-only")
+    monkeypatch.setenv("PRESENTER_PASSWORD_HASH", generate_password_hash("correct fictional password"))
+    client = create_app(SQLiteStore(path)).test_client()
+    for route in ("/", "/items", "/items/1", "/about", "/product", "/blog", "/resources"):
+        assert client.get(route, base_url=PUBLIC_ORIGIN).status_code == 200
+    for route in ("/items/new", "/items/2/claim", "/review/claims"):
+        response = client.get(route, base_url=PUBLIC_ORIGIN)
+        assert response.status_code == 302 and "/presenter/login" in response.location
+    assert client.post("/review/claims/1", base_url=PUBLIC_ORIGIN).status_code == 403
+    assert b"fictional-test-secret-only" not in client.get("/", base_url=PUBLIC_ORIGIN).data
+    login = client.get("/presenter/login?next=/items/new", base_url=PUBLIC_ORIGIN)
+    assert login.status_code == 200
+    wrong = client.post("/presenter/login", base_url=PUBLIC_ORIGIN, data={
+        "csrf_token": csrf_token(client), "password": "wrong", "next": "/items/new"})
+    assert wrong.status_code == 200 and b"not recognized" in wrong.data
+    correct = client.post("/presenter/login", base_url=PUBLIC_ORIGIN, data={
+        "csrf_token": csrf_token(client), "password": "correct fictional password", "next": "/items/new"})
+    assert correct.status_code == 302 and correct.location.endswith("/items/new")
+    assert client.get("/review/claims", base_url=PUBLIC_ORIGIN).status_code == 200
+    assert client.get("/review/claims", base_url=PUBLIC_ORIGIN).headers["Cache-Control"] == "no-store"
+    token = csrf_token(client)
+    assert client.post("/presenter/logout", base_url=PUBLIC_ORIGIN, data={"csrf_token": token}).status_code == 302
+    assert client.get("/review/claims", base_url=PUBLIC_ORIGIN).status_code == 302
+    assert client.get("/items", base_url="https://untrusted.example").status_code == 400
+
+
+def test_protected_photo_match_claim_approval_survives_restart(tmp_path, monkeypatch):
+    path = initialize_database(tmp_path / "journey.sqlite3")
+    monkeypatch.setenv("FINDIT_PUBLIC", "1")
+    monkeypatch.setenv("FINDIT_ALLOWED_HOSTS", "localhost")
+    monkeypatch.setenv("SECRET_KEY", "fictional-test-secret-only")
+    monkeypatch.setenv("PRESENTER_PASSWORD_HASH", generate_password_hash("correct fictional password"))
+    client = create_app(SQLiteStore(path)).test_client()
+    client.get("/presenter/login", base_url=PUBLIC_ORIGIN)
+    client.post("/presenter/login", base_url=PUBLIC_ORIGIN, data={
+        "csrf_token": csrf_token(client), "password": "correct fictional password"})
+    assert client.get("/items/new", base_url=PUBLIC_ORIGIN).status_code == 200
+    token = csrf_token(client)
+    lost = client.post("/items/new", base_url=PUBLIC_ORIGIN, data=report_data(token, "Lost",
+        report_date=(date.today() - timedelta(days=1)).isoformat()))
+    assert lost.status_code == 302
+    found_form = report_data(token, "Found")
+    found_form["photos"] = [(image_bytes("red"), "front.png"), (image_bytes("blue"), "back.png")]
+    found = client.post("/items/new", base_url=PUBLIC_ORIGIN, data=found_form,
+                        content_type="multipart/form-data")
+    assert found.status_code == 302
+    store = SQLiteStore(path)
+    lost_id, found_id = [row["id"] for row in store.list_items({"q": "crescent sticker", "sort": "oldest"})][-2:]
+    assert found_id in [match["item"]["id"] for match in possible_matches(store, store.get_item(lost_id))]
+    photos = store.list_photos(found_id)
+    assert len(photos) == 2
+    for photo in photos:
+        assert client.get(f"/photos/{photo['id']}", base_url=PUBLIC_ORIGIN).status_code == 200
+    assert b"found-reporter@example.test" not in client.get(f"/items/{found_id}", base_url=PUBLIC_ORIGIN).data
+    claim = client.post(f"/items/{found_id}/claim", base_url=PUBLIC_ORIGIN, data={
+        "csrf_token": token, "name": "Fictional Owner", "contact": "owner@example.test",
+        "explanation": "A hidden scratch is under the black loop lid."})
+    assert claim.status_code == 302
+    review = client.get("/review/claims", base_url=PUBLIC_ORIGIN)
+    assert b"found-reporter@example.test" in review.data
+    claim_id = store.list_claims()[0]["id"]
+    approved = client.post(f"/review/claims/{claim_id}", base_url=PUBLIC_ORIGIN,
+                           data={"csrf_token": token, "action": "approve"})
+    assert approved.status_code == 302
     restarted = SQLiteStore(path)
     assert restarted.get_item(found_id)["status"] == "Returned"
-    assert [c["status"] for c in restarted.list_claims()] == ["Rejected", "Approved"]
-    assert found_id not in ids(restarted, restarted.get_item(lost_id))
-    assert len(restarted.get_photos(lost_id)) == 3
-    new_client = create_app(restarted).test_client()
-    assert new_client.get(f"/items/{lost_id}").status_code == 200
-    assert new_client.get(f"/items/{lost_id}/photos/{restarted.get_photos(lost_id)[0]['id']}").status_code == 200
-    assert claim["explanation"].encode() not in new_client.get(f"/items/{found_id}").data
+    assert len(restarted.list_photos(found_id)) == 2
+    assert restarted.list_claims()[0]["status"] == "Approved"
+    assert client.get(f"/items/{found_id}", base_url=PUBLIC_ORIGIN).status_code == 200
+
+
+def test_model_normalization_and_public_field_validation(tmp_path):
+    assert same_model("iPhone 14 Pro Max", "14 Pro Max")
+    assert not same_model("Galaxy S23", "Pixel S23")
+    path = initialize_database(tmp_path / "public-fields.sqlite3")
+    client = create_app(SQLiteStore(path)).test_client()
+    client.get("/items/new")
+    token = csrf_token(client)
+    for field, value in (("title", "Call 619-555-0199"),
+                         ("description", "Email student@example.test about this item."),
+                         ("brand", "student@example.test")):
+        response = client.post("/items/new", data=report_data(token, "Found", **{field: value}))
+        assert response.status_code == 200
+        assert b"email addresses and phone numbers" in response.data
+    assert len(SQLiteStore(path).list_items()) == 6

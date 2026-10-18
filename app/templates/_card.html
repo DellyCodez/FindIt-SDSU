@@ -1,6 +1,6 @@
 <article class="item-card">
-  <a class="card-image scene-{{ item.image or 'none' }}{% if item.photo_id %} has-photo{% endif %}" href="{{ url_for('item_detail', item_id=item.id) }}" aria-label="View {{ item.title }}">
-    {% if item.photo_id %}<img src="{{ url_for('item_photo', item_id=item.id, photo_id=item.photo_id) }}" alt="Photo of {{ item.title }}" loading="lazy">{% elif not item.image %}{% include '_placeholder.html' %}{% endif %}
+  <a class="card-image scene-{{ 'photo' if item.photo_id else (item.image or 'none') }}" href="{{ url_for('item_detail', item_id=item.id) }}" aria-label="View {{ item.title }}">
+    {% if item.photo_id %}<img class="item-photo" src="{{ url_for('item_photo', photo_id=item.photo_id) }}" alt="Photo of {{ item.title }}" loading="lazy">{% elif not item.image %}{% include '_placeholder.html' %}{% endif %}
     <span class="type-badge {{ item.kind|lower }}">{{ item.kind }}</span>
   </a>
   <div class="card-body">

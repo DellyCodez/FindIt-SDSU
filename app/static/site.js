@@ -9,103 +9,89 @@ if (toggle && nav) {
   });
 }
 
+const picker = document.querySelector('[data-photo-picker]');
 const categorySelect = document.querySelector('#category');
 const typeSelect = document.querySelector('#item_type');
 if (categorySelect && typeSelect) {
-  function updateTypes() {
-    const options = Array.from(typeSelect.options);
-    options.forEach(option => {
-      if (!option.dataset.category) return;
-      const available = option.dataset.category === categorySelect.value;
-      option.hidden = !available;
-      option.disabled = !available;
-    });
-    if (!options.some(option => option.selected && !option.disabled)) {
-      typeSelect.value = '';
+  const updateTypes = () => {
+    for (const option of typeSelect.options) {
+      if (!option.value) continue;
+      const allowed = !categorySelect.value || option.dataset.categories.split(',').includes(categorySelect.value);
+      option.disabled = !allowed;
+      option.hidden = !allowed;
     }
-    options[0].textContent = categorySelect.value ? 'Choose an item type' : 'Choose a category first';
-  }
+    if (typeSelect.selectedOptions[0]?.disabled) typeSelect.value = '';
+  };
   categorySelect.addEventListener('change', updateTypes);
   updateTypes();
 }
 
-const photoInput = document.querySelector('#photos');
-const cameraInput = document.querySelector('#photo-camera');
-const dropzone = document.querySelector('#photo-dropzone');
-const previews = document.querySelector('#photo-previews');
-const feedback = document.querySelector('#photo-feedback');
-if (photoInput && cameraInput && dropzone && previews && feedback && window.DataTransfer) {
+const camera = document.querySelector('[data-camera-picker]');
+const previews = document.querySelector('[data-photo-previews]');
+const photoError = document.querySelector('[data-photo-client-error]');
+if (picker && camera && previews && photoError) {
   let selected = [];
-  const allowed = new Set(['image/jpeg', 'image/png', 'image/webp']);
-  function renderPhotos() {
+  const showError = (message) => {
+    photoError.textContent = message;
+    photoError.hidden = !message;
+  };
+  const render = () => {
     const transfer = new DataTransfer();
-    selected.forEach(({ file }) => transfer.items.add(file));
-    photoInput.files = transfer.files;
+    selected.forEach((file) => transfer.items.add(file));
+    picker.files = transfer.files;
     previews.replaceChildren();
-    selected.forEach(({ file, url }, index) => {
+    selected.forEach((file, index) => {
       const card = document.createElement('div');
       card.className = 'photo-preview';
-      const image = document.createElement('img');
-      image.src = url;
-      image.alt = `Preview ${index + 1}: ${file.name}`;
-      const name = document.createElement('span');
-      name.textContent = file.name;
+      const img = document.createElement('img');
+      img.alt = `Preview of photo ${index + 1}`;
+      const url = URL.createObjectURL(file);
+      img.src = url;
+      img.addEventListener('load', () => URL.revokeObjectURL(url), {once: true});
+      const caption = document.createElement('span');
+      caption.className = 'preview-caption';
+      caption.textContent = file.name;
       const remove = document.createElement('button');
       remove.type = 'button';
       remove.textContent = 'Remove';
       remove.setAttribute('aria-label', `Remove photo ${index + 1}: ${file.name}`);
       remove.addEventListener('click', () => {
-        URL.revokeObjectURL(url);
         selected.splice(index, 1);
-        renderPhotos();
+        showError('');
+        render();
       });
-      card.append(image, name, remove);
+      card.append(img, caption, remove);
       previews.append(card);
     });
-    feedback.textContent = selected.length ? `${selected.length} of 3 photos selected.` : 'No photos selected.';
-  }
-  function addPhotos(files) {
-    const incoming = Array.from(files);
-    if (incoming.length + selected.length > 3) {
-      renderPhotos();
-      feedback.textContent = 'Choose no more than three photos.';
+  };
+  const add = (files) => {
+    if (selected.length + files.length > 3) {
+      showError('Choose no more than three photos.');
+      render();
       return;
     }
-    if (incoming.some(file => !allowed.has(file.type) || file.size > 8 * 1024 * 1024)) {
-      renderPhotos();
-      feedback.textContent = 'Choose JPEG, PNG, or WebP files, each 8 MB or smaller.';
-      return;
-    }
-    selected.push(...incoming.map(file => ({ file, url: URL.createObjectURL(file) })));
-    renderPhotos();
-  }
-  photoInput.addEventListener('change', () => addPhotos(photoInput.files));
-  cameraInput.addEventListener('change', () => {
-    addPhotos(cameraInput.files);
-    cameraInput.value = '';
+    selected.push(...files);
+    showError('');
+    render();
+  };
+  picker.addEventListener('change', () => add(Array.from(picker.files)));
+  camera.addEventListener('change', () => {
+    add(Array.from(camera.files));
+    camera.value = '';
   });
-  ['dragenter', 'dragover'].forEach(eventName => dropzone.addEventListener(eventName, event => {
-    event.preventDefault();
-    dropzone.classList.add('is-dragging');
-  }));
-  ['dragleave', 'drop'].forEach(eventName => dropzone.addEventListener(eventName, event => {
-    event.preventDefault();
-    dropzone.classList.remove('is-dragging');
-  }));
-  dropzone.addEventListener('drop', event => addPhotos(event.dataTransfer.files));
 }
 
-const galleryMain = document.querySelector('#gallery-main');
-const galleryCaption = document.querySelector('#gallery-caption');
-const galleryButtons = document.querySelectorAll('.gallery-thumb');
-if (galleryMain && galleryCaption && galleryButtons.length) {
-  galleryButtons.forEach(button => button.addEventListener('click', () => {
-    galleryMain.src = button.dataset.photoUrl;
-    galleryMain.alt = `Photo ${button.dataset.photoNumber} of ${galleryButtons.length} showing this item`;
-    galleryCaption.textContent = `Photo ${button.dataset.photoNumber} of ${galleryButtons.length} · uploaded with this fictional report`;
-    galleryButtons.forEach(other => {
-      other.classList.toggle('is-active', other === button);
-      other.setAttribute('aria-pressed', String(other === button));
+const mainPhoto = document.querySelector('.gallery-main-image');
+if (mainPhoto) {
+  document.querySelectorAll('[data-gallery-thumb]').forEach((thumb) => {
+    thumb.addEventListener('click', () => {
+      mainPhoto.src = thumb.dataset.photoSrc;
+      mainPhoto.alt = thumb.dataset.photoAlt;
+      document.querySelectorAll('[data-gallery-thumb]').forEach((button) => {
+        const active = button === thumb;
+        button.classList.toggle('is-active', active);
+        button.setAttribute('aria-pressed', String(active));
+      });
     });
-  }));
+  });
 }

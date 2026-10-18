@@ -44,28 +44,31 @@ def test_report_claim_review_journey_and_privacy(tmp_path):
     assert len(store.list_items()) == 6
     report = dict(csrf_token=csrf, kind="Found", title="Striped umbrella",
                   description="Navy and cream stripes with a wooden handle.",
-                  category="Other", location="Library", item_type="Umbrella",
-                  primary_color="Navy", report_date=date.today().isoformat())
+                  category="Other", item_type="Other", location="Library", report_date=date.today().isoformat(),
+                  contact_email="private-reporter@example.test")
     response = client.post("/items/new", data=report, follow_redirects=True)
     assert response.status_code == 200
     assert b"Striped umbrella" in response.data
     assert len(store.list_items()) == 7
     assert b"Striped umbrella" in client.get("/items?q=umbrella&kind=Found").data
     item_id = store.list_items({"q": "umbrella"})[0]["id"]
+    assert b"private-reporter@example.test" not in client.get(f"/items/{item_id}").data
+    assert b"private-reporter@example.test" not in client.get("/items?q=umbrella").data
     claim = dict(csrf_token=csrf, name="Demo Student", contact="demo@example.test",
                  explanation="The handle has a tiny star etched near the base.")
-    assert client.post(f"/items/{item_id}/claim", data={**claim, "contact": "second@example.test"}, follow_redirects=True).status_code == 200
     assert client.post(f"/items/{item_id}/claim", data=claim, follow_redirects=True).status_code == 200
+    assert client.post(f"/items/{item_id}/claim", data=claim).status_code == 409
+    other_claim = {**claim, "name": "Second Fictional Student", "contact": "second@example.test"}
+    assert client.post(f"/items/{item_id}/claim", data=other_claim, follow_redirects=True).status_code == 200
     assert b"tiny star" not in client.get(f"/items/{item_id}").data
     assert b"tiny star" in client.get("/review/claims").data
+    assert b"private-reporter@example.test" in client.get("/review/claims").data
     assert client.post("/review/claims/1", data={"csrf_token": csrf, "action": "approve"}, follow_redirects=True).status_code == 200
     assert store.get_item(item_id)["status"] == "Returned"
     assert [claim["status"] for claim in store.list_claims()] == ["Rejected", "Approved"]
     assert client.post("/review/claims/2", data={"csrf_token": csrf, "action": "approve"}).status_code == 302
     assert store.get_item(item_id)["status"] == "Returned"
-    resolved = client.get(f"/items/{item_id}/claim", follow_redirects=True)
-    assert resolved.status_code == 200
-    assert b"no longer accepts claims" in resolved.data
+    assert client.get(f"/items/{item_id}/claim").status_code == 404
     # A new app/store instance reads the same reports and review decisions.
     restarted = SQLiteStore(path)
     assert restarted.get_item(item_id)["status"] == "Returned"
@@ -84,6 +87,11 @@ def test_bad_input_and_csrf_rejected(tmp_path):
     assert invalid_report.status_code == 200
     assert b'aria-invalid="true"' in invalid_report.data
     assert b"Please check the highlighted fields" in invalid_report.data
+    assert len(store.list_items()) == 6
+    exposed_contact = client.post("/items/new", data=dict(csrf_token=csrf, kind="Lost",
+        title="Fictional item", description="Call 619-555-0123 to find this item.",
+        category="Other", item_type="Other", location="Library", report_date=date.today().isoformat()))
+    assert b"Keep email addresses and phone numbers out of public details" in exposed_contact.data
     assert len(store.list_items()) == 6
     compact_date = client.post("/items/new", data=dict(csrf_token=csrf, kind="Lost",
         title="Invalid date format", description="This fictional report has a compact date.",
@@ -104,8 +112,7 @@ def test_lost_report_and_rejected_claim_survive_restart(tmp_path):
     response = client.post("/items/new", data=dict(
         csrf_token=csrf, kind="Lost", title="Purple pencil pouch",
         description="Small canvas pouch with a silver zipper.",
-        category="Other", location="Library", item_type="Other", primary_color="Purple",
-        report_date=date.today().isoformat(),
+        category="Other", item_type="Other", location="Library", report_date=date.today().isoformat(),
     ), follow_redirects=True)
     assert response.status_code == 200
     lost_id = store.list_items({"q": "pencil pouch"})[0]["id"]
@@ -175,7 +182,7 @@ def test_database_constraints_and_repeatable_setup(tmp_path):
     claim = dict(csrf_token=csrf, name="Demo Student", contact="demo@example.test",
                  explanation="A small silver mark is inside the case.")
     client.post("/items/2/claim", data=claim)
-    client.post("/items/2/claim", data={**claim, "contact": "other@example.test"})
+    client.post("/items/2/claim", data={**claim, "name": "Second Student", "contact": "second@example.test"})
     with closing(connect(path)) as connection:
         with pytest.raises(sqlite3.IntegrityError):
             connection.execute("UPDATE items SET kind = 'Lost' WHERE id = 2")
