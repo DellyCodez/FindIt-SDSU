@@ -16,7 +16,7 @@ def initialize_database(path=None):
         tables = {row[0] for row in connection.execute(
             "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"
         )}
-        if version not in (0, 1, 2, 3) or (version == 0 and tables):
+        if version not in (0, 1, 2, 3, 4) or (version == 0 and tables):
             raise RuntimeError(f"Refusing to change an unknown database at {path}")
         if version == 0:
             # executescript starts an explicit transaction so schema and seed stay atomic.
@@ -30,6 +30,11 @@ def initialize_database(path=None):
             if version in (1, 2):
                 migration = PROJECT_ROOT / "database" / "migrations" / "003_item_photos.sql"
                 # Split this simple DDL file so the surrounding transaction remains active.
+                for statement in migration.read_text().split(";"):
+                    if statement.strip():
+                        connection.execute(statement)
+            if version in (1, 2, 3):
+                migration = PROJECT_ROOT / "database" / "migrations" / "004_item_attributes.sql"
                 for statement in migration.read_text().split(";"):
                     if statement.strip():
                         connection.execute(statement)
@@ -54,7 +59,7 @@ def initialize_database(path=None):
                 """, (DEMO_REPORTER_EMAIL, item["category"], item["location"],
                       item["title"], item["description"], item["kind"], "Open",
                       item["report_date"], item["image"]))
-        connection.execute("PRAGMA user_version = 3")
+        connection.execute("PRAGMA user_version = 4")
         connection.commit()
         return path
     except Exception:

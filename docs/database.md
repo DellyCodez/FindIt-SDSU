@@ -1,101 +1,102 @@
 # Database design — implemented SQLite schema
 
 `database/schema.sql` is the authoritative schema for the Flask app on `work/app`.
-Initialize it with `python -m app.init_db` from the repository root, using the
-project virtual environment. The ignored local file is `instance/findit.sqlite3`.
-Initialization is repeatable: it preserves existing reports and claims and inserts
-six fictional reports only if the `items` table is empty. `FINDIT_DB_PATH` can point
-both initialization and app startup at another SQLite file.
-An existing version 1 database is upgraded in place through
-`database/migrations/002_match_candidates.sql` and
-`database/migrations/003_item_photos.sql`; version 2 uses only the latter.
-These migrations run in a transaction and preserve every report and claim.
-The initializer records version 3 in
-SQLite's `user_version` pragma. It refuses unknown versions and nonempty
-unversioned databases instead of rebuilding them.
+Run `python -m app.init_db` before starting Flask. The default SQLite file is
+`instance/findit.sqlite3`; `FINDIT_DB_PATH` selects another file. Initialization
+is repeatable. It seeds six fictional reports only when `items` is empty.
 
-## Tables and columns
+## Tables and relationships
 
-| Table | Columns | Purpose |
+| Table | Main columns | Relationship |
 | --- | --- | --- |
-| `users` | `id` PK, `name`, `email` | Fictional reporter and claimant identities; email is unique without case sensitivity. |
-| `categories` | `id` PK, `name` | One category name per row. |
-| `locations` | `id` PK, `name` | One campus location name per row. |
-| `items` | `id` PK, `reporter_id` FK, `category_id` FK, `location_id` FK, `title`, `description`, `kind`, `status`, `report_date`, `image_key` | Lost/found reports. `image_key` selects one of the local demo pictures or is null. |
-| `item_photos` | `id` PK, `item_id` FK, `position`, `filename`, `width`, `height`, `byte_size` | Up to three processed WebP photos for a report; the first is the card image. |
-| `claims` | `id` PK, `item_id` FK, `claimant_id` FK, `explanation`, `status`, `created_at` | Private identifying explanations and review decisions for found items. |
+| `users` | `id`, `name`, unique case insensitive `email` | One user may report many items and submit many claims. |
+| `categories` | `id`, unique `name` | One category per item. |
+| `locations` | `id`, unique `name` | One location per item. |
+| `items` | `id`, reporter/category/location FKs, `kind`, `status`, `title`, `description`, `report_date`, `image_key`, `item_type`, `brand`, `model`, `primary_color`, `distinguishing_features` | Each report belongs to a reporter, category, and location. |
+| `item_photos` | `id`, `item_id` FK, `position`, `filename`, dimensions, byte size | Up to three photos per item, ordered by position. |
+| `claims` | `id`, item/claimant FKs, private `explanation`, `status`, `created_at` | A found item may have many claimants but only one approved claim. |
 
-Each foreign key references the named table's `id` and restricts deletion of a
-referenced row. The app enables `PRAGMA foreign_keys = ON` for **every** SQLite
-connection. One user can report many items and submit many claims. Each item has
-one category, one location, and one reporter; a found item can have many claims.
-Category and location names live in their own tables instead of being copied into
-each item. The app joins these tables when it displays reports.
-`item_photos.item_id` references `items.id`; a unique `(item_id, position)` key
-and the 1–3 position check prevent duplicate slots and more than three photos.
-The `(item_id, position)` index supports ordered galleries. Filenames are random
-and have no user-supplied path component. The actual WebP files are in the
-ignored `instance/uploads/` directory, or `FINDIT_UPLOAD_DIR` if configured.
-SQLite and the upload directory must be kept together for photos to persist.
+The new item attributes are nullable for older reports; the initializer never
+guesses and writes missing details into existing rows. The current report form
+requires an item type and primary color and validates type choices against the
+selected category. Brand, model, and distinguishing features are optional.
+The legacy Keys category remains, and Accessories is available for new reports.
 
-## Validation and claim integrity
+Every database connection enables `PRAGMA foreign_keys = ON`. SQLite checks
+required values, status values, text lengths, date shape, photo slots, and
+referential integrity. The partial unique index `one_approved_claim_per_item`
+permits at most one approved claim for each item.
 
-Required text fields have `NOT NULL` and length checks. `items.kind` is `Lost` or
-`Found`; `items.status` is `Open` or `Returned`, with `Returned` allowed only for a
-found item. `claims.status` is `Pending`, `Approved`, or `Rejected`. Dates use
-`YYYY-MM-DD`. Form validation gives people useful messages, while the SQLite
-constraints also reject invalid direct inserts.
+## Migration and photo storage
 
-The partial unique index `one_approved_claim_per_item` permits at most one
-`Approved` claim per item. A trigger permits new claims only for open found items.
-Another trigger checks approval eligibility. When a claim is approved, an SQLite
-trigger marks its item `Returned` and rejects its other pending claims in the same
-transaction. Triggers prevent returning an item without an approved claim or
-reopening an approved item. The app's `review_claim` operation uses
-`BEGIN IMMEDIATE` so competing reviewers serialize their decisions. A rejected or
-approved claim cannot be reviewed again. A claim's item and claimant cannot be
-changed, and an approved claim cannot be deleted. An item with claims cannot
-change from found to lost.
+The initializer records schema version **4** in `PRAGMA user_version`.
+A version 1 database applies migrations 002, 003, and 004; version 2 applies
+003 and 004; version 3 applies 004. A version 4 database only repeats safe
+initialization. Migrations run inside a transaction and preserve reports,
+claims, users, and photo rows. Unknown versions and nonempty unversioned
+databases are refused rather than reset.
 
-## Possible-match lookup
+Migration 004 adds five nullable item columns and an item type candidate index.
+It does not rewrite primary keys or foreign keys. The `item_photos` table has
+a unique `(item_id, position)` pair and checks positions 1–3. Uploaded JPEG,
+PNG, or WebP files are validated and re-encoded as WebP with random filenames.
+SQLite stores their metadata; the actual files remain in the ignored
+`instance/uploads/` directory or `FINDIT_UPLOAD_DIR`. Back up or move the
+database and upload directory together. The first photo is used on listing
+cards; the item page displays the full gallery.
 
-For an open report, the app queries **open reports of the opposite type in the
-same category**. It considers a found date from two days before to 45 days
-after a lost date; the reverse window is used from a found report. The composite
-index `idx_items_match_candidates(kind, status, category_id, report_date)`
-supports this bounded candidate lookup. The query joins categories and
-locations for display, then Python scores up to 300 recent candidates using
-only public titles, descriptions, dates, and locations.
+## Matching
 
-The score gives 35 points for the matching category, 18 for the same location,
-2–15 for date proximity, and up to 30 for shared meaningful words. It requires
-at least one shared non-color word, filters conflicting stated colors, and
-requires two shared words for the broad `Other` category. Only suggestions
-scoring at least 60 are shown, up to three per report. Reasons explain the
-visible evidence. Claimant names, contact information, and private explanations
-are never read by the
-matching query. Suggestions are **not** ownership proof. The rule can miss
-misclassified items or records beyond its time and candidate limits, and it
-can still suggest unrelated items with similar public descriptions.
+SQL fetches open reports of the opposite kind in the same category within a
+bounded date window. A found report may be from two days before through 45
+days after a lost report; the reverse window applies to found reports. Where
+the source has an explicit item type, SQL accepts that type and legacy reports
+without a type (or with Other). The composite
+`idx_items_match_candidates(kind, status, category_id, report_date)` index
+supports the date lookup. At most 300 recent candidates enter Python scoring.
 
-Claim names, emails, and private explanations are queried only for the local
-demo reviewer page. Public item queries do not select this information. The
-reviewer has **no production authentication**; use fictional information and do
-not deploy it as a real claims service.
+Python cautiously recognizes an older report's type from an unambiguous title
+without storing the guess. Known incompatible types, conflicting colors, and
+conflicting known brands or models are rejected. A candidate needs shared
+distinctive details or a matching model; generic terms such as “case”,
+“black”, and “item”, plus the shared location, cannot make a lead by themselves.
+Reports without recognized types need more shared details.
 
-## Local setup and tests
+The heuristic starts with 20 points for category, adds 34 for two compatible
+recognized types (or 6 for one known type), up to 24 for distinctive words,
+8 for color, 10 for brand, 16 for model, 6 for location, and up to 7 for date
+proximity. Scores are capped at 100; suggestions below 58 are hidden and at
+most three appear. Reasons describe public evidence. **Scores are similarity
+heuristics, not ownership probabilities or proof.** Wrong categories, sparse
+descriptions, and the date window can hide real matches; similar public clues
+can still produce a false lead. The algorithm never reads claim evidence or
+claimant contact information.
+
+## Claims and privacy
+
+A claim starts Pending and can target only an open found item. The application
+rejects a second claim from the same email for that item without removing
+existing legacy duplicates. A reviewer can approve or reject a pending claim
+once. `review_claim` uses `BEGIN IMMEDIATE`, and SQLite triggers atomically
+mark an approved item's status Returned and reject its other pending claims.
+Triggers prevent reopening an approved item, deleting its approval, or changing
+the item or claimant attached to a claim.
+
+Public report forms reject common email addresses and phone numbers in public
+text with a message directing the writer to the claim form. Public item and
+matching queries do not select claimant names, emails, or explanations. The
+reviewer route accepts loopback requests only, but **has no authentication**:
+anyone with local access can see fictional claim details. Do not deploy it as
+a real claims service.
+
+## Reproduce the checks
 
 ```bash
-python3 -m venv .venv
-.venv/bin/python -m pip install -r requirements-dev.txt
-.venv/bin/python -m app.init_db
-.venv/bin/python -m pytest -q app/test_web.py
-.venv/bin/python -m pytest -q app/test_matching.py
+.venv/bin/python -m pytest -q
 .venv/bin/python -m database.evaluate
-.venv/bin/python run.py
 ```
 
-See the README for Windows PowerShell commands. Andy can use this schema as the
-source of truth for an ER diagram, independent QA, fictional sample data, and
-verified JOIN, filter, and GROUP BY queries. Those supporting deliverables are
-separate from the authoritative schema.
+The database evaluation uses a separate disposable database. See
+[database-evaluation.md](database-evaluation.md) for its measured results and
+limits. The README has Windows PowerShell setup commands. The course ER diagram
+and independent QA from the database teammate remain separate deliverables.

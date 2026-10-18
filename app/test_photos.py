@@ -33,6 +33,7 @@ def setup(tmp_path):
     report = dict(csrf_token=csrf, kind="Lost", title="Black smartphone",
                   description="Black smartphone with a small silver sticker.",
                   category="Electronics", location="Library",
+                  item_type="Smartphone", primary_color="Black",
                   report_date=date.today().isoformat())
     return client, store, path, report
 
@@ -146,13 +147,17 @@ def test_version_two_migration_preserves_reports_and_claims(tmp_path):
     with closing(connect(path)) as connection:
         before_items = [tuple(row) for row in connection.execute("SELECT * FROM items ORDER BY id")]
         before_claims = [tuple(row) for row in connection.execute("SELECT * FROM claims ORDER BY id")]
+        connection.execute("DROP INDEX idx_items_type_candidates")
+        for field in ("distinguishing_features", "primary_color", "model", "brand", "item_type"):
+            connection.execute(f"ALTER TABLE items DROP COLUMN {field}")
+        before_items = [tuple(row) for row in connection.execute("SELECT * FROM items ORDER BY id")]
         connection.execute("DROP TABLE item_photos")
         connection.execute("PRAGMA user_version = 2")
     initialize_database(path)
     initialize_database(path)
     with closing(connect(path)) as connection:
-        assert connection.execute("PRAGMA user_version").fetchone()[0] == 3
-        assert [tuple(row) for row in connection.execute("SELECT * FROM items ORDER BY id")] == before_items
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 4
+        assert [tuple(row)[:len(before_items[0])] for row in connection.execute("SELECT * FROM items ORDER BY id")] == before_items
         assert [tuple(row) for row in connection.execute("SELECT * FROM claims ORDER BY id")] == before_claims
         assert connection.execute("SELECT COUNT(*) FROM item_photos").fetchone()[0] == 0
         assert connection.execute("PRAGMA foreign_key_check").fetchall() == []

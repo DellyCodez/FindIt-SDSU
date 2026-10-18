@@ -3,7 +3,7 @@
 from datetime import date, timedelta
 
 
-CATEGORIES = ("Electronics", "Bags", "Drinkware", "Keys", "Clothing", "Other")
+CATEGORIES = ("Electronics", "Bags", "Drinkware", "Keys", "Clothing", "Accessories", "Other")
 LOCATIONS = (
     "Library", "Student Union", "Engineering Building", "West Commons",
     "Arts and Letters", "Campus Green", "Other",

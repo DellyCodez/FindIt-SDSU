@@ -31,7 +31,7 @@ class SQLiteStore:
         if not self.path.is_file():
             raise RuntimeError(f"Database missing at {self.path}. Run: python -m app.init_db")
         with self.connection() as connection:
-            if connection.execute("PRAGMA user_version").fetchone()[0] != 3:
+            if connection.execute("PRAGMA user_version").fetchone()[0] != 4:
                 raise RuntimeError("Database schema version is unknown. Run the documented setup.")
 
     @contextmanager
@@ -52,6 +52,7 @@ class SQLiteStore:
 
     ITEM_SELECT = """
         SELECT i.id, i.kind, i.title, i.description, i.report_date, i.status,
+               i.item_type, i.brand, i.model, i.primary_color, i.distinguishing_features,
                i.category_id, i.location_id,
                i.image_key AS image, c.name AS category, l.name AS location,
                (SELECT p.id FROM item_photos AS p WHERE p.item_id = i.id
@@ -66,7 +67,7 @@ class SQLiteStore:
         conditions, values = [], []
         query = filters.get("q", "").strip()
         if query:
-            conditions.append("instr(lower(i.title || ' ' || i.description || ' ' || l.name), lower(?)) > 0")
+            conditions.append("instr(lower(i.title || ' ' || i.description || ' ' || coalesce(i.item_type,'') || ' ' || coalesce(i.brand,'') || ' ' || coalesce(i.model,'') || ' ' || l.name), lower(?)) > 0")
             values.append(query)
         for key, column in (("kind", "i.kind"), ("category", "c.name"), ("location", "l.name")):
             if filters.get(key):
@@ -91,12 +92,15 @@ class SQLiteStore:
         kind = "Found" if item["kind"] == "Lost" else "Lost"
         sql = self.ITEM_SELECT + """
             WHERE i.kind = ? AND i.status = 'Open' AND i.category_id = ?
+              AND (i.item_type = ? OR i.item_type IS NULL OR i.item_type = 'Other' OR ? IS NULL)
               AND i.report_date BETWEEN ? AND ? AND i.id != ?
             ORDER BY i.report_date DESC, i.id DESC LIMIT 300
         """
+        item_type = item.get("item_type") if item.get("item_type") != "Other" else None
         with self.connection() as connection:
             return [dict(row) for row in connection.execute(
-                sql, (kind, item["category_id"], first_date, last_date, item["id"])
+                sql, (kind, item["category_id"], item_type, item_type,
+                      first_date, last_date, item["id"])
             )]
 
     def get_item(self, item_id):
@@ -131,15 +135,18 @@ class SQLiteStore:
                 connection.execute("BEGIN IMMEDIATE")
                 cursor = connection.execute("""
                     INSERT INTO items
-                        (reporter_id, category_id, location_id, title, description, kind, report_date)
+                        (reporter_id, category_id, location_id, title, description, kind, report_date,
+                         item_type, brand, model, primary_color, distinguishing_features)
                     VALUES (
                         (SELECT id FROM users WHERE email = ?),
                         (SELECT id FROM categories WHERE name = ?),
                         (SELECT id FROM locations WHERE name = ?),
-                        ?, ?, ?, ?
+                        ?, ?, ?, ?, ?, ?, ?, ?, ?
                     )
                 """, (DEMO_REPORTER_EMAIL, data["category"], data["location"],
-                      data["title"], data["description"], data["kind"], data["report_date"]))
+                      data["title"], data["description"], data["kind"], data["report_date"],
+                      data.get("item_type"), data.get("brand") or None, data.get("model") or None,
+                      data.get("primary_color") or None, data.get("distinguishing_features") or None))
                 if photos:
                     self.upload_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
                 for position, photo in enumerate(photos, start=1):
@@ -180,6 +187,12 @@ class SQLiteStore:
                 claimant_id = connection.execute(
                     "SELECT id FROM users WHERE email = ?", (data["contact"],)
                 ).fetchone()[0]
+                if connection.execute(
+                    "SELECT 1 FROM claims WHERE item_id = ? AND claimant_id = ?",
+                    (item_id, claimant_id),
+                ).fetchone():
+                    connection.rollback()
+                    return {"error": "duplicate"}
                 cursor = connection.execute("""
                     INSERT INTO claims(item_id, claimant_id, explanation)
                     VALUES (?, ?, ?)
@@ -194,14 +207,29 @@ class SQLiteStore:
         with self.connection() as connection:
             rows = connection.execute("""
                 SELECT cl.id, cl.item_id, cl.explanation, cl.status, cl.created_at,
-                       u.name, u.email AS contact, i.title AS item_title
+                       u.name, u.email AS contact, i.title AS item_title,
+                       i.kind AS item_kind, i.status AS item_status,
+                       i.report_date, i.image_key AS item_image,
+                       i.item_type, i.brand, i.model, i.primary_color,
+                       c.name AS category, l.name AS location,
+                       (SELECT p.id FROM item_photos p WHERE p.item_id = i.id
+                        ORDER BY p.position LIMIT 1) AS photo_id
                 FROM claims AS cl
                 JOIN users AS u ON u.id = cl.claimant_id
                 JOIN items AS i ON i.id = cl.item_id
+                JOIN categories AS c ON c.id = i.category_id
+                JOIN locations AS l ON l.id = i.location_id
                 ORDER BY cl.id DESC
             """).fetchall()
-        return [dict(**{key: row[key] for key in row.keys() if key != "item_title"},
-                     item={"title": row["item_title"]}) for row in rows]
+        claim_fields = ("id", "item_id", "explanation", "status", "created_at", "name", "contact")
+        return [dict(**{key: row[key] for key in claim_fields}, item={
+            "id": row["item_id"], "title": row["item_title"], "kind": row["item_kind"],
+            "status": row["item_status"], "report_date": row["report_date"],
+            "image": row["item_image"], "item_type": row["item_type"],
+            "brand": row["brand"], "model": row["model"],
+            "primary_color": row["primary_color"], "category": row["category"],
+            "location": row["location"], "photo_id": row["photo_id"],
+        }) for row in rows]
 
     def review_claim(self, claim_id, action):
         if action not in ("approve", "reject"):

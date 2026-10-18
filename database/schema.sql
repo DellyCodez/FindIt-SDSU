@@ -35,7 +35,12 @@ CREATE TABLE IF NOT EXISTS items (
         CHECK (length(report_date) = 10
                AND report_date GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'
                AND coalesce(date(report_date) = report_date, 0)),
-    image_key TEXT CHECK (image_key IS NULL OR image_key IN ('bottle', 'earbuds', 'backpack'))
+    image_key TEXT CHECK (image_key IS NULL OR image_key IN ('bottle', 'earbuds', 'backpack')),
+    item_type TEXT CHECK (item_type IS NULL OR length(trim(item_type)) BETWEEN 2 AND 40),
+    brand TEXT CHECK (brand IS NULL OR length(trim(brand)) BETWEEN 1 AND 60),
+    model TEXT CHECK (model IS NULL OR length(trim(model)) BETWEEN 1 AND 60),
+    primary_color TEXT CHECK (primary_color IS NULL OR length(trim(primary_color)) BETWEEN 2 AND 40),
+    distinguishing_features TEXT CHECK (distinguishing_features IS NULL OR length(trim(distinguishing_features)) BETWEEN 3 AND 300)
 );
 
 CREATE TABLE IF NOT EXISTS item_photos (
@@ -66,6 +71,8 @@ CREATE INDEX IF NOT EXISTS idx_items_kind_category_location
     ON items(kind, category_id, location_id);
 CREATE INDEX IF NOT EXISTS idx_items_match_candidates
     ON items(kind, status, category_id, report_date);
+CREATE INDEX IF NOT EXISTS idx_items_type_candidates
+    ON items(kind, status, category_id, item_type, report_date);
 CREATE INDEX IF NOT EXISTS idx_claims_item_status ON claims(item_id, status);
 CREATE UNIQUE INDEX IF NOT EXISTS one_approved_claim_per_item
     ON claims(item_id) WHERE status = 'Approved';

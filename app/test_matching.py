@@ -37,7 +37,7 @@ def test_known_pair_reasons_and_false_leads(tmp_path):
     assert matches[0]["score"] >= 60
     assert "Same category" in matches[0]["reasons"]
     assert "Same location" in matches[0]["reasons"]
-    assert "red" in matches[0]["reasons"][-1]
+    assert "Matching color" in matches[0]["reasons"]
     reverse = possible_matches(store, found)
     assert lost["id"] in [match["item"]["id"] for match in reverse]
     assert all(match["item"]["kind"] == "Lost" for match in reverse)
@@ -46,7 +46,7 @@ def test_known_pair_reasons_and_false_leads(tmp_path):
     page = create_app(store).test_client().get(f"/items/{lost['id']}")
     assert b"Possible matches" in page.data
     assert b"Red water bottle" in page.data
-    assert b"Match score" in page.data
+    assert b"Similarity" in page.data
     assert b"proof of ownership" in page.data
 
 
@@ -125,6 +125,11 @@ def test_existing_database_upgrades_without_losing_records(tmp_path):
         tables = ("users", "categories", "locations", "items", "claims")
         before = {table: [tuple(row) for row in connection.execute(
             f"SELECT * FROM {table} ORDER BY id")] for table in tables}
+        connection.execute("DROP INDEX idx_items_type_candidates")
+        for field in ("distinguishing_features", "primary_color", "model", "brand", "item_type"):
+            connection.execute(f"ALTER TABLE items DROP COLUMN {field}")
+        before = {table: [tuple(row) for row in connection.execute(
+            f"SELECT * FROM {table} ORDER BY id")] for table in tables}
         connection.execute("DROP INDEX idx_items_match_candidates")
         connection.execute("DROP TABLE item_photos")
         connection.execute("PRAGMA user_version = 1")
@@ -135,9 +140,9 @@ def test_existing_database_upgrades_without_losing_records(tmp_path):
     initialize_database(path)  # repeat setup must not duplicate fixtures or claims
     assert len(upgraded.list_items()) == 7
     with closing(connect(path)) as connection:
-        assert {table: [tuple(row) for row in connection.execute(
+        assert {table: [tuple(row)[:len(before[table][0])] for row in connection.execute(
             f"SELECT * FROM {table} ORDER BY id")] for table in tables} == before
-        assert connection.execute("PRAGMA user_version").fetchone()[0] == 3
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 4
         assert connection.execute("PRAGMA foreign_key_check").fetchall() == []
         indexes = {row[1] for row in connection.execute("PRAGMA index_list(items)")}
         assert "idx_items_match_candidates" in indexes

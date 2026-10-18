@@ -10,7 +10,9 @@ from flask import Flask, abort, flash, redirect, render_template, request, send_
 from werkzeug.exceptions import RequestEntityTooLarge
 
 from .matching import possible_matches
+from .item_types import ITEM_TYPES
 from .photos import PhotoValidationError, prepare_photos
+from .privacy import contains_contact
 from .storage import SQLiteStore
 
 
@@ -32,6 +34,12 @@ def create_app(store=None):
 
     @app.template_filter("illustration_type")
     def illustration_type(item):
+        if item.get("item_type") == "Smartphone":
+            return "phone"
+        if item.get("item_type") == "Earbuds":
+            return "earbuds"
+        if item.get("item_type") == "Laptop":
+            return "laptop"
         if item["category"] != "Electronics":
             return item["category"].lower()
         title = item["title"].lower()
@@ -49,10 +57,13 @@ def create_app(store=None):
             session["csrf_token"] = secrets.token_urlsafe(24)
         return {"categories": app.config["STORE"].list_categories(),
                 "locations": app.config["STORE"].list_locations(),
-                "csrf_token": session["csrf_token"], "today": date.today().isoformat()}
+                "csrf_token": session["csrf_token"], "today": date.today().isoformat(),
+                "item_types": ITEM_TYPES}
 
     @app.before_request
     def verify_post_token():
+        if request.path.startswith("/review/") and request.remote_addr not in ("127.0.0.1", "::1"):
+            abort(403)
         token = session.get("csrf_token")
         if request.method == "POST" and (not token or not hmac.compare_digest(
             request.form.get("csrf_token", ""), token
@@ -90,7 +101,8 @@ def create_app(store=None):
         errors = {}
         if request.method == "POST":
             values = {key: request.form.get(key, "").strip() for key in
-                      ("kind", "title", "description", "category", "location", "report_date")}
+                      ("kind", "title", "description", "category", "location", "report_date",
+                       "item_type", "brand", "model", "primary_color", "distinguishing_features")}
             if values["kind"] not in ("Lost", "Found"):
                 errors["kind"] = "Choose lost or found."
             if not 4 <= len(values["title"]) <= 90:
@@ -99,6 +111,17 @@ def create_app(store=None):
                 errors["description"] = "Add at least 12 characters of detail (maximum 1,200)."
             if values["category"] not in store().list_categories():
                 errors["category"] = "Choose a category."
+            if values["category"] in ITEM_TYPES and values["item_type"] not in ITEM_TYPES[values["category"]]:
+                errors["item_type"] = "Choose an item type for this category."
+            for field, maximum in (("brand", 60), ("model", 60),
+                                   ("distinguishing_features", 300)):
+                if values[field] and not (3 if field == "distinguishing_features" else 1) <= len(values[field]) <= maximum:
+                    errors[field] = f"Use no more than {maximum} characters."
+            if not 2 <= len(values["primary_color"]) <= 40:
+                errors["primary_color"] = "Enter the item's primary color (2–40 characters)."
+            for field in ("title", "description", "brand", "model", "primary_color", "distinguishing_features"):
+                if contains_contact(values[field]):
+                    errors[field] = "Remove email addresses and phone numbers from this public field. Use the private claim form for contact details."
             if values["location"] not in store().list_locations():
                 errors["location"] = "Choose a location."
             try:
@@ -139,8 +162,11 @@ def create_app(store=None):
     @app.route("/items/<int:item_id>/claim", methods=["GET", "POST"])
     def claim_item(item_id):
         item = item_or_404(item_id)
-        if item["kind"] != "Found" or item["status"] != "Open":
+        if item["kind"] != "Found":
             abort(404)
+        if item["status"] != "Open":
+            flash("This item has already been returned and no longer accepts claims.", "error")
+            return redirect(url_for("item_detail", item_id=item_id))
         values = {}
         errors = {}
         if request.method == "POST":
@@ -156,7 +182,10 @@ def create_app(store=None):
                 if claim is None:
                     flash("This item can no longer be claimed.", "error")
                     return redirect(url_for("item_detail", item_id=item_id))
-                flash("Claim submitted for the local demo reviewer.", "success")
+                if claim.get("error") == "duplicate":
+                    errors["contact"] = "A claim using this email is already recorded for this item. Ask the local demo reviewer about its status."
+                    return render_template("claim.html", item=item, values=values, errors=errors), 409
+                flash("Claim submitted. Its identifying detail is visible only to the local demo reviewer. Review is pending; a suggestion score does not verify ownership.", "success")
                 return redirect(url_for("item_detail", item_id=item_id))
         return render_template("claim.html", item=item, values=values, errors=errors)
 
@@ -168,7 +197,7 @@ def create_app(store=None):
     def review_action(claim_id):
         action = request.form.get("action", "")
         if store().review_claim(claim_id, action):
-            flash("Claim reviewed. The report has been updated.", "success")
+            flash("Claim approved and item returned." if action == "approve" else "Claim rejected. The item remains open.", "success")
         else:
             flash("This claim could not be reviewed. It may already be resolved.", "error")
         return redirect(url_for("review_claims"))

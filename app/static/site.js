@@ -9,6 +9,26 @@ if (toggle && nav) {
   });
 }
 
+const categorySelect = document.querySelector('#category');
+const typeSelect = document.querySelector('#item_type');
+if (categorySelect && typeSelect) {
+  function updateTypes() {
+    const options = Array.from(typeSelect.options);
+    options.forEach(option => {
+      if (!option.dataset.category) return;
+      const available = option.dataset.category === categorySelect.value;
+      option.hidden = !available;
+      option.disabled = !available;
+    });
+    if (!options.some(option => option.selected && !option.disabled)) {
+      typeSelect.value = '';
+    }
+    options[0].textContent = categorySelect.value ? 'Choose an item type' : 'Choose a category first';
+  }
+  categorySelect.addEventListener('change', updateTypes);
+  updateTypes();
+}
+
 const photoInput = document.querySelector('#photos');
 const cameraInput = document.querySelector('#photo-camera');
 const dropzone = document.querySelector('#photo-dropzone');

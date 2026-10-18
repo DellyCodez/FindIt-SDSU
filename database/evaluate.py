@@ -8,13 +8,15 @@ from contextlib import closing
 from datetime import date, timedelta
 from pathlib import Path
 import random
+import re
 import sqlite3
 from statistics import median
 from tempfile import TemporaryDirectory
 from time import perf_counter_ns
 
 from app.init_db import initialize_database
-from app.matching import possible_matches
+from app.matching import COLORS, possible_matches
+from app.item_types import recognized_type
 from app.storage import SQLiteStore, connect
 
 
@@ -27,11 +29,13 @@ PAIRS = (
     ("Keys", "West Commons", "Brass keys on orange cord", "Two brass keys attached to an orange woven cord."),
     ("Clothing", "Campus Green", "Purple jacket with white zipper", "A purple jacket with a distinctive white front zipper."),
     ("Other", "Arts and Letters", "Yellow notebook with sun drawing", "A yellow notebook with a small sun drawing on the cover."),
+    ("Electronics", "Library", "Black iPhone 14 Pro Max with silver star", "A black phone with a silver star sticker on the back."),
 )
 
 CANDIDATE_SQL = """
     SELECT i.id FROM items AS i {index_hint}
     WHERE i.kind = ? AND i.status = 'Open' AND i.category_id = ?
+      AND (i.item_type = ? OR i.item_type IS NULL OR i.item_type = 'Other' OR ? IS NULL)
       AND i.report_date BETWEEN ? AND ?
     ORDER BY i.report_date DESC LIMIT 300
 """
@@ -74,15 +78,28 @@ def populate(connection):
     """, rows)
     known = []
     for category, location, title, description in PAIRS:
+        item_type = recognized_type({"category": category, "title": title, "item_type": None})
+        primary_color = next((word for word in re.findall(r"[a-z]+", title.lower()) if word in COLORS), None)
+        phone = item_type == "Smartphone"
         ids = []
         for kind, day in (("Lost", "2026-09-26"), ("Found", "2026-09-27")):
             cursor = connection.execute("""
-                INSERT INTO items(reporter_id,category_id,location_id,title,description,kind,report_date)
-                VALUES (1,?,?,?,?,?,?)
-            """, (categories[category], locations[location], title, description, kind, day))
+                INSERT INTO items(reporter_id,category_id,location_id,title,description,kind,report_date,
+                                  item_type,primary_color,brand,model)
+                VALUES (1,?,?,?,?,?,?,?,?,?,?)
+            """, (categories[category], locations[location], title, description, kind, day,
+                  item_type, primary_color, "Apple" if phone else None,
+                  "iPhone 14 Pro Max" if phone else None))
             ids.append(cursor.lastrowid)
         known.append(ids)
-    return known
+    decoy = connection.execute("""
+        INSERT INTO items(reporter_id,category_id,location_id,title,description,kind,report_date,
+                          item_type,primary_color)
+        VALUES (1,?,?,?,?,?,?,?,?)
+    """, (categories["Electronics"], locations["Library"], "Black wireless earbuds with silver star",
+          "Black earbuds in a case with a silver star sticker.", "Found", "2026-09-27",
+          "Earbuds", "black")).lastrowid
+    return known, decoy
 
 
 def measure(connection, sql, params, repetitions=200):
@@ -102,16 +119,16 @@ def run():
         with closing(connect(path)) as connection:
             connection.execute("BEGIN IMMEDIATE")
             connection.execute("DELETE FROM items")  # only the disposable evaluation database
-            known = populate(connection)
+            known, decoy = populate(connection)
             connection.commit()
             connection.execute("ANALYZE")
             count = connection.execute("SELECT COUNT(*) FROM items").fetchone()[0]
-            assert count == RECORDS + 2 * len(PAIRS)
+            assert count == RECORDS + 2 * len(PAIRS) + 1
             print(f"Fictional evaluation reports: {count} in a temporary SQLite database")
             print("Foreign key check:", len(connection.execute("PRAGMA foreign_key_check").fetchall()), "violations")
             print("JOIN sample:", [tuple(row) for row in connection.execute(JOIN_SQL).fetchall()[:2]])
             print("Aggregate sample:", [tuple(row) for row in connection.execute(AGGREGATE_SQL).fetchall()[:2]])
-            params = ("Found", 3, "2026-09-01", "2026-09-30")
+            params = ("Found", 1, "Smartphone", "Smartphone", "2026-09-01", "2026-09-30")
             indexed = CANDIDATE_SQL.format(index_hint="INDEXED BY idx_items_match_candidates")
             scan = CANDIDATE_SQL.format(index_hint="NOT INDEXED")
             print("Indexed plan:", [row[3] for row in connection.execute("EXPLAIN QUERY PLAN " + indexed, params)])
@@ -145,6 +162,9 @@ def run():
             correct += known_found in suggested
         print(f"Known-pair retrieval: {correct}/{len(known)} curated fictional pairs in top 3 suggestions")
         assert correct == len(known)
+        phone_suggestions = [m["item"]["id"] for m in possible_matches(store, store.get_item(known[-1][0]), limit=20)]
+        print(f"Known incompatible earbuds decoy excluded: {decoy not in phone_suggestions}")
+        assert decoy not in phone_suggestions
 
 
 if __name__ == "__main__":

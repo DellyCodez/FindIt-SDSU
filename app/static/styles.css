@@ -1406,3 +1406,25 @@ img {
 .gallery-thumb:focus-visible {outline:2px solid var(--bright);outline-offset:3px}
 .gallery-thumb img {display:block;width:100%;height:100%;object-fit:cover}
 @media(max-width:520px) {.photo-previews {gap:6px}.photo-preview img {height:85px}.gallery-thumb {width:70px;height:60px}}
+
+/* Structured details and reviewer context. */
+.optional {color:var(--muted);font-size:11px;font-weight:400}
+.match-card {padding:0;overflow:hidden}
+.match-image,.review-image {display:block;position:relative;overflow:hidden;background-image:url('images/demo-scenes.png');background-repeat:no-repeat;background-size:220% auto;background-color:#ece7df}
+.match-image {height:155px}
+.match-image.has-photo,.review-image.has-photo {background-image:none}
+.match-image img,.review-image img {display:block;width:100%;height:100%;object-fit:cover}
+.match-image .placeholder-art svg {width:75px;height:75px}
+.match-image .placeholder-art span {font-size:9px}
+.match-card-body {padding:19px 20px 21px}
+.match-card h3 {margin:14px 0 5px}
+.match-meta {color:var(--muted);font-size:12px;margin:0 0 15px;line-height:1.5}
+.review-guidance {max-width:760px;color:var(--muted);line-height:1.6;margin:0 0 24px;font-size:13px}
+.review-item {display:grid;grid-template-columns:132px 1fr;gap:18px;align-items:center;padding:15px 0;margin-top:16px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.review-image {height:105px;border-radius:6px}
+.review-image .placeholder-art svg {width:62px;height:62px}
+.review-image .placeholder-art span {font-size:8px}
+.review-item p {margin:0 0 8px;font-size:12px;color:var(--muted)}
+.review-item .review-item-type {font-weight:700;color:var(--charcoal)}
+.review-outcome {font-size:12px;color:var(--muted);margin:0}
+@media(max-width:520px) {.review-item {grid-template-columns:96px 1fr;gap:12px}.review-image {height:90px}.match-image {height:165px}}
