@@ -5,5 +5,6 @@
   </fieldset>
   <label class="select-wrap"><span class="sr-only">Category</span><select name="category"><option value="">Category</option>{% for category in categories %}<option value="{{ category }}" {% if filters and filters.category == category %}selected{% endif %}>{{ category }}</option>{% endfor %}</select></label>
   <label class="select-wrap"><span class="sr-only">Location</span><select name="location"><option value="">Location</option>{% for location in locations %}<option value="{{ location }}" {% if filters and filters.location == location %}selected{% endif %}>{{ location }}</option>{% endfor %}</select></label>
+  {% if show_sort %}<label class="select-wrap sort-wrap"><span class="sr-only">Sort reports</span><select name="sort"><option value="newest" {% if filters.sort == 'newest' %}selected{% endif %}>Newest first</option><option value="oldest" {% if filters.sort == 'oldest' %}selected{% endif %}>Oldest first</option>{% if filters.q %}<option value="relevance" {% if filters.sort == 'relevance' %}selected{% endif %}>Best match</option>{% endif %}</select></label>{% endif %}
   <button class="search-submit" type="submit">Search <span aria-hidden="true">→</span></button>
 </form>

@@ -13,6 +13,7 @@ For the first version, we want people to be able to:
 - **View item details** and see whether an item is still available.
 - **Submit a claim** when they think a found item belongs to them.
 - **Review claims** through a simple demo page and mark returned items.
+- **See possible matches** between public lost and found reports, with reasons to review each suggestion.
 
 The claim process is the main feature we want to get right. A found item may have more than one claimant, but the system should only allow one approved claim.
 
@@ -64,14 +65,24 @@ py -3.12 -m venv .venv
 
 Open `http://127.0.0.1:5000/` in your browser. Stop the server with Ctrl+C. Re-running `app.init_db` keeps existing reports and claims; it adds the six fictional starter reports only to an empty database. Set `FINDIT_DB_PATH` before both initialization and launch to use a different SQLite file. Never commit a local `.sqlite3` file.
 
+If you already have a local database from the first SQLite version, run `app.init_db` once before launching the updated app. It adds the matching lookup index in a transaction without replacing reports or claims. Possible Matches appear on open item details when opposite-type reports have plausible public details. They are suggestions, not ownership decisions.
+
 To run the automated web and database checks on macOS or Linux:
 
 ```bash
 .venv/bin/python -m pip install -r requirements-dev.txt
-.venv/bin/python -m pytest -q app/test_web.py
+.venv/bin/python -m pytest -q
 ```
 
-On Windows PowerShell, use `.\.venv\Scripts\python.exe` for both test commands.
+On Windows PowerShell, use `.\.venv\Scripts\python.exe` for both commands.
+
+To reproduce the database evaluation on a **separate temporary database**, run:
+
+```bash
+.venv/bin/python -m database.evaluate
+```
+
+Windows PowerShell: `.\.venv\Scripts\python.exe -m database.evaluate`. The command prints JOIN and aggregate examples, query plans, indexed versus table-scan timings, curated fictional pair retrieval, and claim consistency checks. Results from one run are recorded in [the evaluation notes](docs/database-evaluation.md).
 
 Try the demo in this order:
 
@@ -84,7 +95,7 @@ The app has no login, uploads, email, or public deployment workflow. The campus 
 
 ## Progress
 
-**Phase 1 proof of concept:** the Flask UI, SQLite-backed report and claim flow, responsive pages, and integration tests are implemented. Production authentication and real student data are outside this local demonstration.
+**Phase 1 proof of concept:** the Flask UI, SQLite-backed report and claim flow, explainable possible matches, responsive pages, and integration tests are implemented. Production authentication and real student data are outside this local demonstration.
 
 Our [Phase 1 checklist](docs/phase-1.md) covers the course deliverables.
 

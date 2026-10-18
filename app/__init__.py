@@ -8,6 +8,7 @@ import secrets
 
 from flask import Flask, abort, flash, redirect, render_template, request, session, url_for
 
+from .matching import possible_matches
 from .storage import SQLiteStore
 
 
@@ -15,6 +16,11 @@ def create_app(store=None):
     app = Flask(__name__)
     app.secret_key = os.environ.get("SECRET_KEY") or secrets.token_hex(32)
     app.config["STORE"] = store if store is not None else SQLiteStore()
+
+    @app.template_filter("readable_date")
+    def readable_date(value):
+        reported = date.fromisoformat(value)
+        return f"{reported:%b} {reported.day}, {reported.year}"
 
     @app.context_processor
     def shared_template_data():
@@ -47,10 +53,15 @@ def create_app(store=None):
 
     @app.get("/items")
     def items():
-        filters = {key: request.args.get(key, "").strip() for key in ("q", "kind", "category", "location")}
+        filters = {key: request.args.get(key, "").strip() for key in ("q", "kind", "category", "location", "sort")}
         if filters["kind"] not in ("", "Lost", "Found"):
             filters["kind"] = ""
-        return render_template("items.html", items=store().list_items(filters), filters=filters)
+        if filters["sort"] not in ("newest", "oldest", "relevance") or (
+            filters["sort"] == "relevance" and not filters["q"]
+        ):
+            filters["sort"] = "relevance" if filters["q"] else "newest"
+        return render_template("items.html", items=store().list_items(filters),
+                               filters=filters, show_sort=True)
 
     @app.route("/items/new", methods=["GET", "POST"])
     def new_item():
@@ -71,19 +82,20 @@ def create_app(store=None):
                 errors["location"] = "Choose a location."
             try:
                 report_date = date.fromisoformat(values["report_date"])
-                if report_date > date.today():
+                if values["report_date"] != report_date.isoformat() or report_date > date.today():
                     raise ValueError
             except ValueError:
                 errors["report_date"] = "Choose a valid date that is not in the future."
             if not errors:
                 item = store().create_item(values)
-                flash("Your demo report is ready to view.", "success")
+                flash("Your fictional report is live. Check the possible matches below as new reports arrive.", "success")
                 return redirect(url_for("item_detail", item_id=item["id"]))
         return render_template("report.html", values=values, errors=errors)
 
     @app.get("/items/<int:item_id>")
     def item_detail(item_id):
-        return render_template("detail.html", item=item_or_404(item_id))
+        item = item_or_404(item_id)
+        return render_template("detail.html", item=item, matches=possible_matches(store(), item))
 
     @app.route("/items/<int:item_id>/claim", methods=["GET", "POST"])
     def claim_item(item_id):

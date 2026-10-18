@@ -51,6 +51,8 @@ CREATE TABLE IF NOT EXISTS claims (
 CREATE INDEX IF NOT EXISTS idx_items_date ON items(report_date DESC, id DESC);
 CREATE INDEX IF NOT EXISTS idx_items_kind_category_location
     ON items(kind, category_id, location_id);
+CREATE INDEX IF NOT EXISTS idx_items_match_candidates
+    ON items(kind, status, category_id, report_date);
 CREATE INDEX IF NOT EXISTS idx_claims_item_status ON claims(item_id, status);
 CREATE UNIQUE INDEX IF NOT EXISTS one_approved_claim_per_item
     ON claims(item_id) WHERE status = 'Approved';

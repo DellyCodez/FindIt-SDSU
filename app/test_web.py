@@ -75,12 +75,23 @@ def test_bad_input_and_csrf_rejected(tmp_path):
     client, store, _ = client_and_store(tmp_path)
     csrf = token(client)
     assert client.post("/items/new", data={"csrf_token": "wrong"}).status_code == 400
-    assert client.post("/items/new", data=dict(csrf_token=csrf, kind="Lost", title="Future item",
+    invalid_report = client.post("/items/new", data=dict(csrf_token=csrf, kind="Lost", title="Future item",
         description="A made up item description", category="Other", location="Library",
-        report_date="2999-01-01")).status_code == 200
+        report_date="2999-01-01"))
+    assert invalid_report.status_code == 200
+    assert b'aria-invalid="true"' in invalid_report.data
+    assert b"Please check the highlighted fields" in invalid_report.data
     assert len(store.list_items()) == 6
-    assert client.post("/items/2/claim", data=dict(csrf_token=csrf, name="A",
-        contact="not-an-email", explanation="too short")).status_code == 200
+    compact_date = client.post("/items/new", data=dict(csrf_token=csrf, kind="Lost",
+        title="Invalid date format", description="This fictional report has a compact date.",
+        category="Other", location="Library", report_date=date.today().strftime("%Y%m%d")))
+    assert compact_date.status_code == 200
+    assert b"Choose a valid date" in compact_date.data
+    assert len(store.list_items()) == 6
+    invalid_claim = client.post("/items/2/claim", data=dict(csrf_token=csrf, name="A",
+        contact="not-an-email", explanation="too short"))
+    assert invalid_claim.status_code == 200
+    assert b'aria-invalid="true"' in invalid_claim.data
     assert store.list_claims() == []
 
 

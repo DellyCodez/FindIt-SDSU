@@ -1,8 +1,8 @@
 # FindIt SDSU — app build brief
 
-This is the handoff for **Alexander's `work/app` branch**. The visual direction has already been approved. Build a polished, usable **student-project MVP** for the CS 514 Phase 1 demonstration. The Flask UI and in-memory demo flow are already built; the next stage is for Alexander to implement the SQLite schema and persistence, with Andy independently testing.
+This is the original design brief for **Alexander's `work/app` branch**. The visual direction remains approved. The app now uses persistent SQLite records and includes the explainable Possible Matches feature. Use the README for current setup and `docs/database.md` for the implemented schema and matching rules. Andy's independent QA is still separate.
 
-**Read first:** `README.md`, `AGENTS.md`, `docs/database.md`, `docs/phase-1.md`. Do not change Andy's `work/database` or Samuel's `work/docs` branch. This is a build plan, **not a claim that these features exist yet**.
+**Read first:** `README.md`, `AGENTS.md`, `docs/database.md`, `docs/phase-1.md`. Do not change Andy's `work/database` or Samuel's `work/docs` branch. The sequence and checkboxes below preserve the original design plan; check the README and tests for current implementation status.
 
 ## Design direction — approved
 

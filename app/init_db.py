@@ -16,11 +16,17 @@ def initialize_database(path=None):
         tables = {row[0] for row in connection.execute(
             "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"
         )}
-        if version not in (0, 1) or (version == 0 and tables):
+        if version not in (0, 1, 2) or (version == 0 and tables):
             raise RuntimeError(f"Refusing to change an unknown database at {path}")
-        # Keep schema creation, starter rows, and the version marker atomic.
-        connection.executescript("BEGIN IMMEDIATE;\n" +
-                                 (PROJECT_ROOT / "database" / "schema.sql").read_text())
+        if version == 0:
+            # executescript starts an explicit transaction so schema and seed stay atomic.
+            connection.executescript("BEGIN IMMEDIATE;\n" +
+                                     (PROJECT_ROOT / "database" / "schema.sql").read_text())
+        else:
+            connection.execute("BEGIN IMMEDIATE")
+            if version == 1:
+                migration = PROJECT_ROOT / "database" / "migrations" / "002_match_candidates.sql"
+                connection.execute(migration.read_text())
         connection.execute("INSERT OR IGNORE INTO users(name, email) VALUES (?, ?)",
                            ("Demo Reporter", DEMO_REPORTER_EMAIL))
         for category in CATEGORIES:
@@ -42,7 +48,7 @@ def initialize_database(path=None):
                 """, (DEMO_REPORTER_EMAIL, item["category"], item["location"],
                       item["title"], item["description"], item["kind"], "Open",
                       item["report_date"], item["image"]))
-        connection.execute("PRAGMA user_version = 1")
+        connection.execute("PRAGMA user_version = 2")
         connection.commit()
         return path
     except Exception:

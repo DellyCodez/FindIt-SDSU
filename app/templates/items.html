@@ -1,7 +1,19 @@
 {% extends 'base.html' %}
 {% block title %}Browse reports — FindIt SDSU{% endblock %}
 {% block content %}
-<section class="page-intro"><div class="container"><p class="eyebrow">Find your way back</p><h1>Browse lost &amp; found</h1><p>Search fictional reports from around our demonstration campus.</p></div></section>
-<div class="container browse-content">{% include '_filters.html' %}<div class="results-heading"><div><h2>{{ items|length }} {{ 'report' if items|length == 1 else 'reports' }}</h2><p>Showing items that match your search.</p></div><a class="button button-small button-outline" href="{{ url_for('new_item') }}">＋ Report an item</a></div>
-{% if items %}<div class="cards-grid">{% for item in items %}{% include '_card.html' %}{% endfor %}</div>{% else %}<div class="empty-state"><span aria-hidden="true">⌕</span><h2>No reports found</h2><p>Try another search term or clear a filter to see more items.</p><a class="button button-outline" href="{{ url_for('items') }}">Clear filters</a></div>{% endif %}</div>
+<section class="page-intro browse-intro"><div class="container"><p class="eyebrow">Every detail helps</p><h1>Browse lost &amp; found</h1><p>Find a familiar item, narrow the search, and follow the details that matter.</p></div></section>
+<div class="container browse-content">
+  {% include '_filters.html' %}
+  {% if filters.q or filters.kind or filters.category or filters.location %}
+  <div class="active-filters" aria-label="Active filters"><span>Filtering by</span>
+    {% if filters.q %}<a href="{{ url_for('items', kind=filters.kind, category=filters.category, location=filters.location, sort=filters.sort) }}">“{{ filters.q }}” <span aria-hidden="true">×</span><span class="sr-only">Remove search term</span></a>{% endif %}
+    {% if filters.kind %}<a href="{{ url_for('items', q=filters.q, category=filters.category, location=filters.location, sort=filters.sort) }}">{{ filters.kind }} <span aria-hidden="true">×</span><span class="sr-only">Remove type filter</span></a>{% endif %}
+    {% if filters.category %}<a href="{{ url_for('items', q=filters.q, kind=filters.kind, location=filters.location, sort=filters.sort) }}">{{ filters.category }} <span aria-hidden="true">×</span><span class="sr-only">Remove category filter</span></a>{% endif %}
+    {% if filters.location %}<a href="{{ url_for('items', q=filters.q, kind=filters.kind, category=filters.category, sort=filters.sort) }}">{{ filters.location }} <span aria-hidden="true">×</span><span class="sr-only">Remove location filter</span></a>{% endif %}
+    <a class="clear-filters" href="{{ url_for('items') }}">Clear all</a>
+  </div>
+  {% endif %}
+  <div class="results-heading"><div><p class="eyebrow">The latest leads</p><h2>{{ items|length }} {{ 'report' if items|length == 1 else 'reports' }} found</h2><p>{% if filters.q or filters.kind or filters.category or filters.location %}Showing reports that match your filters.{% else %}Explore all fictional lost and found reports.{% endif %}</p></div><a class="button button-small button-outline" href="{{ url_for('new_item') }}">＋ Report an item</a></div>
+  {% if items %}<div class="cards-grid browse-grid">{% for item in items %}{% include '_card.html' %}{% endfor %}</div>{% else %}<div class="empty-state"><span aria-hidden="true">⌕</span><h2>No reports found</h2><p>Try a shorter search term, remove a filter, or add a report so others can help.</p><div class="empty-actions"><a class="button button-outline" href="{{ url_for('items') }}">Clear filters</a><a class="button button-primary" href="{{ url_for('new_item') }}">Report an item</a></div></div>{% endif %}
+</div>
 {% endblock %}

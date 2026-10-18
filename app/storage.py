@@ -28,7 +28,7 @@ class SQLiteStore:
         if not self.path.is_file():
             raise RuntimeError(f"Database missing at {self.path}. Run: python -m app.init_db")
         with self.connection() as connection:
-            if connection.execute("PRAGMA user_version").fetchone()[0] != 1:
+            if connection.execute("PRAGMA user_version").fetchone()[0] != 2:
                 raise RuntimeError("Database schema version is unknown. Run the documented setup.")
 
     @contextmanager
@@ -49,6 +49,7 @@ class SQLiteStore:
 
     ITEM_SELECT = """
         SELECT i.id, i.kind, i.title, i.description, i.report_date, i.status,
+               i.category_id, i.location_id,
                i.image_key AS image, c.name AS category, l.name AS location
         FROM items AS i
         JOIN categories AS c ON c.id = i.category_id
@@ -69,9 +70,29 @@ class SQLiteStore:
         sql = self.ITEM_SELECT
         if conditions:
             sql += " WHERE " + " AND ".join(conditions)
-        sql += " ORDER BY i.report_date DESC, i.id DESC"
+        sort = filters.get("sort", "newest")
+        if sort == "oldest":
+            sql += " ORDER BY i.report_date ASC, i.id ASC"
+        elif sort == "relevance" and query:
+            sql += " ORDER BY CASE WHEN instr(lower(i.title), lower(?)) > 0 THEN 0 ELSE 1 END, i.report_date DESC, i.id DESC"
+            values.append(query)
+        else:
+            sql += " ORDER BY i.report_date DESC, i.id DESC"
         with self.connection() as connection:
             return [dict(row) for row in connection.execute(sql, values)]
+
+    def match_candidates(self, item, first_date, last_date):
+        """Fetch plausible opposite-type reports using the composite matching index."""
+        kind = "Found" if item["kind"] == "Lost" else "Lost"
+        sql = self.ITEM_SELECT + """
+            WHERE i.kind = ? AND i.status = 'Open' AND i.category_id = ?
+              AND i.report_date BETWEEN ? AND ? AND i.id != ?
+            ORDER BY i.report_date DESC, i.id DESC LIMIT 300
+        """
+        with self.connection() as connection:
+            return [dict(row) for row in connection.execute(
+                sql, (kind, item["category_id"], first_date, last_date, item["id"])
+            )]
 
     def get_item(self, item_id):
         with self.connection() as connection:
