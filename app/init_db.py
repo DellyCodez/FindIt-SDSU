@@ -29,7 +29,7 @@ def initialize_database(path=None):
         tables = {row[0] for row in connection.execute(
             "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"
         )}
-        if version not in (0, 1, 2, 3, 4, 5, 6) or (version == 0 and tables):
+        if version not in (0, 1, 2, 3, 4, 5, 6, 7, 8) or (version == 0 and tables):
             raise RuntimeError(f"Refusing to change an unknown database at {path}")
         if version == 0:
             # executescript starts an explicit transaction so schema and seed stay atomic.
@@ -69,6 +69,10 @@ def initialize_database(path=None):
                 DEFAULT 'image/webp' CHECK (mime_type = 'image/webp')""")
         connection.execute("""CREATE INDEX IF NOT EXISTS idx_items_match_type
             ON items(kind, status, category_id, item_type, report_date)""")
+        if "submission_attempts" not in tables:
+            execute_migration(connection, PROJECT_ROOT / "database" / "migrations" / "007_submission_attempts.sql")
+        if "visibility" not in item_columns:
+            execute_migration(connection, PROJECT_ROOT / "database" / "migrations" / "008_report_visibility.sql")
         connection.execute("INSERT OR IGNORE INTO users(name, email) VALUES (?, ?)",
                            ("Demo Reporter", DEMO_REPORTER_EMAIL))
         for category in CATEGORIES:
@@ -90,7 +94,7 @@ def initialize_database(path=None):
                 """, (DEMO_REPORTER_EMAIL, item["category"], item["location"],
                       item["title"], item["description"], item["kind"], "Open",
                       item["report_date"], item["image"]))
-        connection.execute("PRAGMA user_version = 6")
+        connection.execute("PRAGMA user_version = 8")
         connection.commit()
         return path
     except Exception:

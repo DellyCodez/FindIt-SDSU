@@ -41,13 +41,13 @@ One measured run on 2026-10-18 in the cloud workspace used Python 3.12 and SQLit
 | Indexed candidate plan | `SEARCH i USING COVERING INDEX idx_items_match_candidates` |
 | Forced scan plan | `SCAN i`; temporary B-tree for ordering |
 | Indexed candidate query, median of 200 | 0.051 ms |
-| Forced scan, median of 200 | 0.401 ms |
+| Forced scan, median of 200 | 0.476 ms |
 | Structured curated pairs retrieved in top three | 6/6 |
 | iPhone versus earbuds false positive | Excluded |
 | Claim consistency | Returned item, competing claim Rejected, second approval blocked |
 
-These figures are a single measured run on synthetic data after the structured
-field migration. Timings vary by
+These figures are the latest measured run on synthetic data after the version 8
+migration. Timings vary by
 machine and cache state. The six pairs check that the known examples are found;
 they are **not** an estimate of real-world matching precision or recall. Similar
 items, incorrect categories, incomplete descriptions, and the 45-day window

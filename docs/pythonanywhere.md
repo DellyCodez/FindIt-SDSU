@@ -1,10 +1,10 @@
 # PythonAnywhere deployment — FindIt SDSU
 
 This guide targets the `finditsdsu` account, Python 3.12, and
-`https://finditsdsu.pythonanywhere.com`. The public site is a **fictional CS 514
-demonstration**, not an official SDSU service. Anyone can browse. Reporting,
-claims, and claim review require the presenter password. Do not import real
-student data or real claims.
+`https://finditsdsu.pythonanywhere.com`. The site is an independent CS 514
+prototype, not an official SDSU service. Anyone can browse, report, and claim.
+Only the admin claim-review area requires the presenter password. Use fictional
+data until moderation and operational privacy controls are established.
 
 ## 1. Install the unified branch
 
@@ -47,17 +47,13 @@ export FINDIT_DB_PATH=/home/finditsdsu/private/findit.sqlite3
 /home/finditsdsu/.virtualenvs/findit/bin/python -m app.init_db
 ```
 
-`app.init_db` migrates existing version 1–5 databases in place to version 6,
+`app.init_db` migrates existing version 1–7 databases in place to version 8,
 including the alternate published v4 photo/color column names. It does not
 reset reports or claims. Keep the database and `private/uploads/` together in
 backups. Do **not** put the private settings, database, or uploads in Git.
 
-If a private database already exists, back it up **before** running `app.init_db`:
-
-```bash
-cp /home/finditsdsu/private/findit.sqlite3 /home/finditsdsu/private/findit.sqlite3.before-update
-cp -a /home/finditsdsu/private/uploads /home/finditsdsu/private/uploads.before-update
-```
+If a private database already exists, use the SQLite backup procedure in
+**Updating later** below before running `app.init_db`.
 
 ## 3. Configure the Web tab
 
@@ -86,22 +82,72 @@ both secrets. PythonAnywhere writes application exceptions to its Web tab error
 log; check that log if a reload fails.
 
 Click **Reload** in the Web tab. Visit the HTTPS URL and verify the home,
-About, Our Product, Blog, Resources, Browse, and item detail pages. Check that
-the presenter login appears when opening Report Item, Claim, or Review without
-signing in. Sign in and run one fictional report-to-approval journey. Confirm
+About, How It Works, Journal, Resources, Browse, and item detail pages. Post one
+fictional report with a photo and submit a fictional claim as a signed-out visitor.
+Opening `/admin/claims` must redirect to `/admin/login`; sign in there to review
+the claim. Check `/admin/items` to hide and restore a fictional report. Confirm
 the database and uploaded photos remain after another reload.
 
 ## Updating later
 
-Use `git pull --ff-only origin work/unified-site`, install updated requirements,
-back up the private data, run `app.init_db`, copy the WSGI entrypoint if it
-changed, and click **Reload**. Never run the development server on a public
-interface. The existing GitHub Pages project website on `main` should remain
-published until this PythonAnywhere deployment is verified.
+In a PythonAnywhere Bash console, back up the private data **before** the pull
+or migration. These commands keep the backup outside Git and stop if the branch
+cannot advance cleanly:
+
+```bash
+set -euo pipefail
+cd /home/finditsdsu/FindIt-SDSU
+test "$(git branch --show-current)" = work/unified-site
+test -z "$(git status --porcelain)"
+stamp=$(date -u +%Y%m%d-%H%M%S)
+export FINDIT_BACKUP_DIR=/home/finditsdsu/private/backups/$stamp
+mkdir -p "$FINDIT_BACKUP_DIR"
+git rev-parse HEAD > "$FINDIT_BACKUP_DIR/commit"
+/home/finditsdsu/.virtualenvs/findit/bin/python - <<'PY'
+import os, sqlite3
+source = sqlite3.connect('/home/finditsdsu/private/findit.sqlite3')
+target = sqlite3.connect(os.path.join(os.environ['FINDIT_BACKUP_DIR'], 'findit.sqlite3'))
+with target:
+    source.backup(target)
+target.close()
+source.close()
+PY
+cp -a /home/finditsdsu/private/uploads "$FINDIT_BACKUP_DIR/uploads"
+git fetch origin work/unified-site
+git merge --ff-only FETCH_HEAD
+/home/finditsdsu/.virtualenvs/findit/bin/python -m pip install -r requirements.txt
+export FINDIT_DB_PATH=/home/finditsdsu/private/findit.sqlite3
+/home/finditsdsu/.virtualenvs/findit/bin/python -m app.init_db
+cp deployment/pythonanywhere_wsgi.py /var/www/finditsdsu_pythonanywhere_com_wsgi.py
+```
+
+Click **Reload** in PythonAnywhere's Web tab and run the signed-out and admin
+checks above. Never run the development server on a public interface. The
+existing GitHub Pages project website on `main` stays unchanged.
+
+If the reload fails, open the Web tab **Error log** or run
+`tail -n 100 /var/log/finditsdsu.pythonanywhere.com.error.log` in a Bash console.
+Keep the backup path printed in your console session. To recover from a failed
+migration, stop the web app in the Web tab and run the following in the **same
+console** with `$FINDIT_BACKUP_DIR` still set:
+
+```bash
+cd /home/finditsdsu/FindIt-SDSU
+cp "$FINDIT_BACKUP_DIR/findit.sqlite3" /home/finditsdsu/private/findit.sqlite3
+cp -a "$FINDIT_BACKUP_DIR/uploads/." /home/finditsdsu/private/uploads/
+git switch --detach "$(cat "$FINDIT_BACKUP_DIR/commit")"
+```
+
+Reload the web app after restoring. This does not change remote history; switch
+back to `work/unified-site` after the issue is fixed. Do not restore a backup
+over a running app that might still be accepting submissions.
 
 ## Current limits
 
-This presenter-only gate is appropriate for a fictional classroom demo. It is
-not student account management, ownership verification, moderation, or email
-delivery. The single presenter password should not be shared widely. Public
-uploads and real claims require a separate security and privacy review.
+The single admin password protects claim review; it is not student account
+management. Public forms have CSRF, upload validation, a honeypot, and shared
+SQLite rate limits. There is no prepublication approval queue, ownership verification,
+or email delivery. Public reports appear immediately; administrators can hide
+inappropriate content after submission. Real student use needs active moderation
+and a privacy review. Protect the private settings,
+database, backups, and uploads with filesystem permissions and access policy.

@@ -1,11 +1,6 @@
 {% extends 'base.html' %}
-{% block title %}Presenter sign in — FindIt SDSU{% endblock %}
+{% block title %}Admin sign in — FindIt SDSU{% endblock %}
 {% block content %}
-<section class="page-intro"><div class="container"><p class="eyebrow">Classroom demonstration</p><h1>Presenter sign in</h1><p>Browsing is open to everyone. Reporting, claims, and review are limited to the project presenter while this remains a fictional demo.</p></div></section>
-<div class="container presenter-login"><div class="form-panel"><form method="post" novalidate>
-  <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="next" value="{{ next_path }}">
-  {% if error %}<div class="error-summary" role="alert">{{ error }}</div>{% endif %}
-  <div class="form-field"><label for="password">Presenter password</label><input id="password" name="password" type="password" autocomplete="current-password" required {% if error %}aria-invalid="true"{% endif %}></div>
-  <div class="form-actions"><button class="button button-primary" type="submit">Sign in <span aria-hidden="true">→</span></button><a href="{{ url_for('home') }}">Back to home</a></div>
-</form></div><aside class="form-aside"><span class="aside-icon" aria-hidden="true">✳</span><h2>A careful demo.</h2><p>Use invented names, emails, and item details. FindIt SDSU is an independent student project, not an official university service.</p></aside></div>
+<section class="page-intro form-intro"><div class="container"><p class="eyebrow">Private administration</p><h1>Admin sign in.</h1><p>Claim details and review decisions are restricted to the project team.</p></div></section>
+<div class="container presenter-login"><div class="form-panel"><form method="post" novalidate><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="next" value="{{ next_path }}"><div class="form-trap" aria-hidden="true"><label for="website">Website</label><input id="website" name="website" type="text" autocomplete="off" tabindex="-1"></div>{% if error %}<div class="error-summary" role="alert">{{ error }}</div>{% endif %}<div class="form-field"><label for="password">Admin password</label><input id="password" name="password" type="password" autocomplete="current-password" required {% if error %}aria-invalid="true"{% endif %}></div><div class="form-actions"><button class="button button-primary" type="submit">Sign in <span aria-hidden="true">→</span></button><a href="{{ url_for('home') }}">Back to home</a></div></form></div></div>
 {% endblock %}

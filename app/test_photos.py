@@ -87,7 +87,7 @@ def test_photo_relationship_constraints_and_repeatable_setup(tmp_path):
     store, _, _ = setup(tmp_path)
     initialize_database(store.path)
     with closing(connect(store.path)) as connection:
-        assert connection.execute("PRAGMA user_version").fetchone()[0] == 6
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 8
         assert connection.execute("PRAGMA foreign_keys").fetchone()[0] == 1
         assert connection.execute("PRAGMA foreign_key_check").fetchall() == []
         with pytest.raises(sqlite3.IntegrityError):

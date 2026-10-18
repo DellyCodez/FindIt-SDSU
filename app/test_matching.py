@@ -134,7 +134,7 @@ def test_relevance_sort_and_active_filters(tmp_path):
     assert [item["id"] for item in store.list_items({"q": "camera", "sort": "newest"})] == [newer["id"], older["id"]]
     assert [item["id"] for item in store.list_items({"q": "camera", "sort": "relevance"})] == [older["id"], newer["id"]]
     page = create_app(store).test_client().get("/items?q=camera&kind=Lost&sort=relevance")
-    assert b"Filtering by" in page.data
+    assert b"Showing:" in page.data
     assert b"Best match" in page.data
     assert page.data.index(b"Canvas camera pouch") < page.data.index(b"Black tote bag")
 
@@ -168,7 +168,7 @@ def test_existing_database_upgrades_without_losing_records(tmp_path):
     with closing(connect(path)) as connection:
         assert {table: [tuple(row)[:len(before[table][0])] for row in connection.execute(
             f"SELECT * FROM {table} ORDER BY id")] for table in tables} == before
-        assert connection.execute("PRAGMA user_version").fetchone()[0] == 6
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 8
         assert connection.execute("PRAGMA foreign_key_check").fetchall() == []
         indexes = {row[1] for row in connection.execute("PRAGMA index_list(items)")}
         assert "idx_items_match_candidates" in indexes

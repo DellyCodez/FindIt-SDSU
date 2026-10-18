@@ -1,17 +1,17 @@
 # Database design — implemented SQLite schema
 
-`database/schema.sql` is the authoritative schema for the Flask app on `work/app`.
+`database/schema.sql` is the authoritative schema for the Flask app on `work/unified-site`.
 Initialize it with `python -m app.init_db` from the repository root, using the
 project virtual environment. The ignored local file is `instance/findit.sqlite3`.
 Initialization is repeatable: it preserves existing reports and claims and inserts
 six fictional reports only if the `items` table is empty. `FINDIT_DB_PATH` can point
 both initialization and app startup at another SQLite file.
-An existing version 1–5 database is upgraded in place through migrations
-`002_match_candidates.sql` to `006_distinguishing_features.sql`. The transaction
+An existing version 1–7 database is upgraded in place through migrations
+`002_match_candidates.sql` to `008_report_visibility.sql`. The transaction
 preserves every existing report and claim. The published `work/app` version 4
 used `primary_color`, `filename`, and `byte_size`; the initializer adds the
 unified color field and renames the photo columns in place while retaining the
-original data. The initializer records version 6 in
+original data. The initializer records version 8 in
 SQLite's `user_version` pragma. It refuses unknown versions and nonempty
 unversioned databases instead of rebuilding them.
 
@@ -22,9 +22,10 @@ unversioned databases instead of rebuilding them.
 | `users` | `id` PK, `name`, `email` | Fictional reporter and claimant identities; email is unique without case sensitivity. |
 | `categories` | `id` PK, `name` | One category name per row. |
 | `locations` | `id` PK, `name` | One campus location name per row. |
-| `items` | `id` PK, reporter/category/location FKs, `title`, `description`, `kind`, `status`, `report_date`, `image_key`, `item_type`, `brand`, `model`, `color`, `distinguishing_features`, `contact_email` | Lost/found reports with structured matching fields. `contact_email` is excluded from public queries. |
+| `items` | `id` PK, reporter/category/location FKs, `title`, `description`, `kind`, `status`, `visibility`, `report_date`, `image_key`, `item_type`, `brand`, `model`, `color`, `distinguishing_features`, `contact_email` | Lost/found reports with structured matching fields. `contact_email` is excluded from public queries; `visibility` lets an admin hide a report without deleting history. |
 | `item_photos` | `id` PK, `item_id` FK, randomized `file_name`, `position`, MIME type, dimensions, byte count | Up to three processed WebP photos per report; files are stored in an ignored local directory. |
 | `claims` | `id` PK, `item_id` FK, `claimant_id` FK, `explanation`, `status`, `created_at` | Private identifying explanations and review decisions for found items. |
+| `submission_attempts` | `id` PK, `action`, keyed `actor_key`, `created_at` | Atomic rolling-window limits for report, claim, and admin-login POSTs; no raw IP address is stored. |
 
 Each foreign key references the named table's `id`; deleting an item cascades to
 its photo metadata, while other references restrict deletion. The app enables `PRAGMA foreign_keys = ON` for **every** SQLite
@@ -77,9 +78,15 @@ misclassified items or records beyond its time and candidate limits, and it
 can still suggest unrelated items with similar public descriptions.
 
 Claim names, emails, report contact emails, and private explanations are queried only for the
-presenter reviewer page. Public item queries do not select this information. In
-public mode, report, claim, and reviewer actions require the presenter password;
-this is a fictional classroom workflow, not student account management.
+authenticated reviewer page. Public item queries do not select this information. In
+public mode, reporting and claiming are open to visitors; claim review requires the
+admin password. An admin can hide or restore reports through `/admin/items`;
+hidden reports, their photos, and their matches are removed from public pages.
+Submission attempts are reserved inside `BEGIN IMMEDIATE` so
+concurrent requests share the same limit. Entries older than a day are removed
+opportunistically. Limits are four reports or eight claims per hour, and ten
+admin-login attempts per 15 minutes, per IP digest. This is a prototype safeguard,
+not student account management or full spam moderation.
 
 ## Local setup and tests
 

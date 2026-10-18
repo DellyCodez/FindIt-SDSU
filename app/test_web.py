@@ -34,7 +34,7 @@ def test_pages_and_filters(tmp_path):
     page = client.get("/items?q=earbuds&kind=Found&category=Electronics&location=Student+Union")
     assert b"Black wireless earbuds" in page.data
     assert b"Red water bottle" not in page.data
-    assert b"No reports found" in client.get("/items?q=unfindable").data
+    assert b"No items found" in client.get("/items?q=unfindable").data
 
 
 def test_report_claim_review_journey_and_privacy(tmp_path):

@@ -31,6 +31,8 @@ CREATE TABLE IF NOT EXISTS items (
     kind TEXT NOT NULL CHECK (kind IN ('Lost', 'Found')),
     status TEXT NOT NULL DEFAULT 'Open'
         CHECK (status IN ('Open', 'Returned') AND (status = 'Open' OR kind = 'Found')),
+    visibility TEXT NOT NULL DEFAULT 'Visible'
+        CHECK (visibility IN ('Visible', 'Hidden')),
     report_date TEXT NOT NULL
         CHECK (length(report_date) = 10
                AND report_date GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'
@@ -71,7 +73,16 @@ CREATE TABLE IF NOT EXISTS claims (
     created_at TEXT NOT NULL DEFAULT (date('now'))
 );
 
+CREATE TABLE IF NOT EXISTS submission_attempts (
+    id INTEGER PRIMARY KEY,
+    action TEXT NOT NULL CHECK (action IN ('report', 'claim', 'login')),
+    actor_key TEXT NOT NULL CHECK (length(actor_key) = 64),
+    created_at INTEGER NOT NULL CHECK (created_at > 0)
+);
+
 CREATE INDEX IF NOT EXISTS idx_items_date ON items(report_date DESC, id DESC);
+CREATE INDEX IF NOT EXISTS idx_items_visibility_date
+    ON items(visibility, report_date DESC, id DESC);
 CREATE INDEX IF NOT EXISTS idx_items_kind_category_location
     ON items(kind, category_id, location_id);
 CREATE INDEX IF NOT EXISTS idx_items_match_candidates
@@ -79,6 +90,8 @@ CREATE INDEX IF NOT EXISTS idx_items_match_candidates
 CREATE INDEX IF NOT EXISTS idx_items_match_type
     ON items(kind, status, category_id, item_type, report_date);
 CREATE INDEX IF NOT EXISTS idx_claims_item_status ON claims(item_id, status);
+CREATE INDEX IF NOT EXISTS idx_submission_attempts_window
+    ON submission_attempts(action, actor_key, created_at);
 CREATE UNIQUE INDEX IF NOT EXISTS one_approved_claim_per_item
     ON claims(item_id) WHERE status = 'Approved';
 

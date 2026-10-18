@@ -47,6 +47,12 @@ def create_app(store=None):
     def server_error(_error):
         return render_template("error.html"), 500
 
+    @app.errorhandler(429)
+    def too_many_requests(_error):
+        return render_template("error.html", rate_limited=True), 429, {
+            "Retry-After": "900" if request.endpoint == "presenter_login" else "3600",
+            "Cache-Control": "no-store"}
+
     @app.template_filter("readable_date")
     def readable_date(value):
         reported = date.fromisoformat(value)
@@ -67,7 +73,7 @@ def create_app(store=None):
     @app.before_request
     def verify_post_token():
         if (app.config["PRESENTER_AUTH_ENABLED"] and request.endpoint in
-                {"new_item", "claim_item", "review_claims", "review_action"} and
+                {"review_claims", "review_action", "moderation_items", "moderation_action"} and
                 not session.get("presenter")):
             if request.method == "GET":
                 return redirect(url_for("presenter_login", next=request.path))
@@ -77,24 +83,39 @@ def create_app(store=None):
             request.form.get("csrf_token", ""), token
         )):
             abort(400, "Please reload the form and try again.")
+        if public and request.method == "POST" and request.endpoint in {"new_item", "claim_item", "presenter_login"}:
+            if request.form.get("website", ""):
+                abort(400)
+            action, limit, window = {
+                "new_item": ("report", 4, 3600),
+                "claim_item": ("claim", 8, 3600),
+                "presenter_login": ("login", 10, 900),
+            }[request.endpoint]
+            actor = (request.remote_addr or "unknown").encode("utf-8")
+            actor_key = hmac.new(app.secret_key.encode("utf-8"),
+                                 action.encode("ascii") + b":" + actor, "sha256").hexdigest()
+            if not app.config["STORE"].reserve_submission(action, actor_key, limit, window):
+                abort(429)
 
     @app.after_request
     def protect_private_responses(response):
         if request.endpoint in {"presenter_login", "presenter_logout", "claim_item",
-                                "new_item", "review_claims", "review_action"}:
+                                "new_item", "review_claims", "review_action",
+                                "moderation_items", "moderation_action", "claim_received"}:
             response.headers["Cache-Control"] = "no-store"
         return response
 
     @app.route("/presenter/login", methods=["GET", "POST"])
+    @app.route("/admin/login", methods=["GET", "POST"])
     def presenter_login():
         if not app.config["PRESENTER_AUTH_ENABLED"]:
             return redirect(url_for("home"))
         if session.get("presenter"):
             return redirect(url_for("home"))
-        next_path = request.values.get("next", "")
+        next_path = request.values.get("next", url_for("review_claims"))
         if not next_path.startswith("/") or next_path.startswith("//") or any(
                 character in next_path for character in ("\\", "\r", "\n")):
-            next_path = url_for("home")
+            next_path = url_for("review_claims")
         error = None
         if request.method == "POST":
             if check_password_hash(app.config["PRESENTER_PASSWORD_HASH"],
@@ -102,7 +123,7 @@ def create_app(store=None):
                 session.clear()
                 session["presenter"] = True
                 session.permanent = True
-                flash("Signed in for the fictional classroom demonstration.", "success")
+                flash("Signed in to claim review.", "success")
                 return redirect(next_path)
             error = "That presenter password was not recognized."
         return render_template("login.html", error=error, next_path=next_path)
@@ -124,7 +145,7 @@ def create_app(store=None):
 
     @app.get("/")
     def home():
-        return render_template("home.html", items=store().list_items()[:3])
+        return render_template("home.html", items=store().list_items({"status": "Open"})[:3])
 
     @app.get("/about")
     def about():
@@ -162,7 +183,8 @@ def create_app(store=None):
         if request.method == "POST":
             values = {key: request.form.get(key, "").strip() for key in
                       ("kind", "title", "description", "category", "location",
-                       "report_date", "item_type", "brand", "model", "color", "contact_email")}
+                       "report_date", "item_type", "brand", "model", "color", "contact_email",
+                       "distinguishing_features")}
             if values["kind"] not in ("Lost", "Found"):
                 errors["kind"] = "Choose lost or found."
             if not 4 <= len(values["title"]) <= 90:
@@ -171,6 +193,10 @@ def create_app(store=None):
                 errors["description"] = "Add at least 12 characters of detail (maximum 1,200)."
             elif contains_contact(values["description"]):
                 errors["description"] = "Keep email addresses and phone numbers out of public details. Use the private contact field below."
+            if values["distinguishing_features"] and not 3 <= len(values["distinguishing_features"]) <= 300:
+                errors["distinguishing_features"] = "Use 3–300 characters for distinguishing features."
+            elif contains_contact(values["distinguishing_features"]):
+                errors["distinguishing_features"] = "Keep private contact details out of public features."
             for field in ("title", "brand", "model"):
                 if contains_contact(values[field]):
                     errors[field] = "Keep email addresses and phone numbers out of public details."
@@ -207,15 +233,16 @@ def create_app(store=None):
                     app.logger.exception("Report photos could not be saved")
                     errors["photos"] = "Photos could not be saved. Please try again."
                     return render_template("report.html", values=values, errors=errors), 503
-                flash("Your fictional report is live. Check the possible matches below as new reports arrive.", "success")
+                session["report_receipt_item_id"] = item["id"]
                 return redirect(url_for("item_detail", item_id=item["id"]))
         return render_template("report.html", values=values, errors=errors)
 
     @app.get("/items/<int:item_id>")
     def item_detail(item_id):
         item = item_or_404(item_id)
+        report_saved = session.pop("report_receipt_item_id", None) == item_id
         return render_template("detail.html", item=item, photos=store().list_photos(item_id),
-                               matches=possible_matches(store(), item))
+                               matches=possible_matches(store(), item), report_saved=report_saved)
 
     @app.get("/photos/<int:photo_id>")
     def item_photo(photo_id):
@@ -252,15 +279,23 @@ def create_app(store=None):
                 if claim.get("error") == "duplicate":
                     errors["contact"] = "A claim using this email is already recorded for this item."
                     return render_template("claim.html", item=item, values=values, errors=errors), 409
-                flash(f"Claim #{claim['id']} submitted. The presenter reviewer can now assess your private detail.", "success")
-                return redirect(url_for("item_detail", item_id=item_id))
+                session["claim_receipt_item_id"] = item_id
+                return redirect(url_for("claim_received", item_id=item_id))
         return render_template("claim.html", item=item, values=values, errors=errors)
 
+    @app.get("/items/<int:item_id>/claim/received")
+    def claim_received(item_id):
+        if session.get("claim_receipt_item_id") != item_id:
+            abort(404)
+        return render_template("claim_received.html", item=item_or_404(item_id))
+
     @app.get("/review/claims")
+    @app.get("/admin/claims")
     def review_claims():
         return render_template("review.html", claims=store().list_claims())
 
     @app.post("/review/claims/<int:claim_id>")
+    @app.post("/admin/claims/<int:claim_id>")
     def review_action(claim_id):
         action = request.form.get("action", "")
         if store().review_claim(claim_id, action):
@@ -268,5 +303,18 @@ def create_app(store=None):
         else:
             flash("This claim could not be reviewed. It may already be resolved.", "error")
         return redirect(url_for("review_claims"))
+
+    @app.get("/admin/items")
+    def moderation_items():
+        return render_template("moderation.html", items=store().list_moderation_items())
+
+    @app.post("/admin/items/<int:item_id>/visibility")
+    def moderation_action(item_id):
+        visibility = request.form.get("visibility", "")
+        if store().set_item_visibility(item_id, visibility):
+            flash("Report visibility updated.", "success")
+        else:
+            flash("The report could not be updated.", "error")
+        return redirect(url_for("moderation_items"))
 
     return app
