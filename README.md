@@ -1,49 +1,38 @@
-# FindIt SDSU
+# FindIt SDSU — documentation and original project site
 
-A lost-and-found website we're building for our CS 514 database project at San Diego State University.
+This branch preserves the team's Phase 1 documentation, setup notes, and original static informational website.
 
-The idea is to give students one place to post items they've lost, report things they've found, and search for possible matches. We're starting with a small working version and will build on it throughout the semester.
+**Current product:** [Live FindIt SDSU application](https://finditsdsu.pythonanywhere.com/) · [Current source and deployment](https://github.com/DellyCodez/FindIt-SDSU/tree/work/unified-site) · [Technical PDF](https://finditsdsu.pythonanywhere.com/static/docs/phase1-technical-report.pdf)
 
-## What we're building
+## What's included
 
-For the first version, we want people to be able to:
+| Path | Purpose |
+| --- | --- |
+| `project-site/` | Original static project overview, About, Blog, product instructions, and resources |
+| `docs/setup-instructions.md` | Earlier local application setup and demonstration |
+| `docs/unified-site-setup-instructions.md` | Setup notes for the integrated Flask website |
+| `docs/phase-1-final-evidence.md` | Team submission evidence and source references |
+| `docs/andy-evidence-review.md` | Review of independent database-testing evidence |
+| `docs/phase-1-report-source.md` | Technical-report source notes |
 
-- **Post a lost or found item** with a description, category, and campus location.
-- **Browse and search reports** instead of going through individual posts.
-- **View item details** and see whether an item is still available.
-- **Submit a claim** when they think a found item belongs to them.
-- **Review claims** through a simple demo page and mark returned items.
+The older static site is not a live lost-and-found database. The deployed Flask application handles reporting, searching, matching, and claim review.
 
-The claim process is the main feature we want to get right. A found item may have more than one claimant, but the system should only allow one approved claim.
+## Preview the original static site
 
-## Database
+From the repository root:
 
-We're planning to use five related tables: `users`, `items`, `categories`, `locations`, and `claims`. This lets us keep reports organized and track who submitted each item and claim.
+```bash
+python3 -m http.server 8000
+```
 
-See [Database design](docs/database.md) for the current plan.
+Open http://localhost:8000/project-site/. For the actual working product, use the hosted app or the `work/unified-site` branch and follow its README.
 
-## Tech stack
+## Team
 
-Our starting plan is **Python (Flask), SQLite, HTML, CSS, and JavaScript**. We're keeping the setup simple so we can focus on the database and a working website. We'll update this section if we change anything.
+- **Alexander Hills:** Application, database integration, product site integration and deployment.
+- **Andy Thai:** Database design, ER diagram, SQL testing and QA.
+- **Samuel Shadi:** Documentation and presentation.
 
-## Working on the project
+This documentation branch is retained for the project's contribution history. The maintained implementation is available on `work/unified-site`.
 
-We're splitting up the work so we can build different parts at the same time.
-
-| Person | Branch | Working on |
-| --- | --- | --- |
-| Alexander | `work/app` | Website, backend, SQLite schema and database integration |
-| Andy | `work/database` | Testing, sample data, ER diagram, SQL checks, and bug fixes |
-| Samuel | `work/docs` | Project website, technical report, and presentation |
-
-**Using AI to help?** ChatGPT, Gemini, Claude, and other tools can all use this repository for context. Start by giving the tool the GitHub link and asking it to read this README, [the database plan](docs/database.md), [the Phase 1 checklist](docs/phase-1.md), and [the temporary AI instructions](AGENTS.md). Tell it your name and branch—just connecting GitHub won't tell it which part you're responsible for.
-
-Work in your own branch, keep changes to your part of the project, and don't push directly to `main`. When you're done, push your branch and open a pull request so we can review it before merging. Alexander is implementing the database; Andy will help test the schema and app before we merge everything.
-
-## Progress
-
-**Phase 1 — getting started.** The database and website are being built. Setup instructions and screenshots will be added once there's a working version to run.
-
-Our [Phase 1 checklist](docs/phase-1.md) covers the course deliverables.
-
----
+*FindIt SDSU is an independent CS 514 student prototype, not an official SDSU service.*
