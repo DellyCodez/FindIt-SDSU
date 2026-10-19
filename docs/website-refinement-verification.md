@@ -17,7 +17,7 @@ and team responsibilities in a responsive editorial layout. Shared typography,
 form readability, heading wrapping, and search focus treatment were refined.
 The homepage campus image now stays within its own montage quadrant on mobile
 and tablet. Samuel Shadi's name is corrected in About, Journal, README, and the
-technical report. Journal paragraphs and the AI assistance disclosures remain
+technical report. Journal paragraphs and existing project acknowledgments remain
 intact. No schema, matching, authentication, or dependency changes were made.
 
 ## Automated suite
@@ -85,7 +85,7 @@ Validation with PyMuPDF and Poppler (local review tools, not app dependencies):
 - The other eight pages render pixel-for-pixel identically at 72 DPI.
 - Pixel differences on pages 1 and 9 are confined to the corrected text rows.
   Both corrected pages were rendered at 108 DPI and visually inspected.
-- Diagrams, screenshots, technical claims, and AI disclosure retained.
+- Diagrams, screenshots, technical claims, and project acknowledgments retained.
 
 Corrected PDF SHA-256:
 `99514d9f2c7c233657fc37ae18376a305df635da7f7d3afdd06c9018a4599585`.
