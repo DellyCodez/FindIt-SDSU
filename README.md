@@ -6,6 +6,9 @@
 
 FindIt SDSU brings lost and found reports together in a structured database rather than leaving details scattered among group chats and posts. Students can search shared reports, compare possible matches, and submit private identifying information for administrative review. This is an independent CS 514 student prototype, not an official San Diego State University service.
 
+
+![FindIt SDSU browse-and-search interface](app/static/project/about-browse.webp)
+
 ## Features
 
 - **Item reporting:** Public lost/found report forms capture category, campus location, date, descriptive attributes, and up to three photos.
