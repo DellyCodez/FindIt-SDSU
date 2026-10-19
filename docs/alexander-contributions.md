@@ -42,7 +42,7 @@ Alexander performed the existing PythonAnywhere deployment update and confirmed 
 
 - **Alexander Hills:** Application and database integration, unified product site, deployment, and product demonstration.
 - **Andy Thai:** Database diagram, independent SQL verification, data integrity testing, and quality-assurance evidence.
-- **Samueel Shadi:** Presentation, technical documentation, explanatory resources, and final team presentation materials.
+- **Samuel Shadi:** Presentation, technical documentation, explanatory resources, and final team presentation materials.
 
 The team's full deliverables should include the actual ER diagram, test evidence, and presentation/report materials supplied by the respective collaborators. This record documents Alexander's scope and is not a substitute for each student's confidential teammate evaluation.
 
