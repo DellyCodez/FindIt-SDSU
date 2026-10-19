@@ -90,6 +90,51 @@ the database and uploaded photos remain after another reload.
 
 ## Updating later
 
+### Website refinement only
+
+The final About, typography, naming, and technical-report refinement changes
+templates, CSS, documentation, and the existing PDF. It does not change Python
+dependencies, authentication, or the database schema. Use the following commands
+in a PythonAnywhere **Bash console** for this update. They stop if the checkout
+is on another branch or contains local changes; resolve that situation before
+continuing, without discarding work.
+
+```bash
+set -euo pipefail
+umask 077
+cd /home/finditsdsu/FindIt-SDSU
+test "$(git branch --show-current)" = work/unified-site
+test -z "$(git status --porcelain)"
+stamp=$(date -u +%Y%m%d-%H%M%S)
+export FINDIT_BACKUP_DIR=/home/finditsdsu/private/backups/$stamp
+mkdir -p "$FINDIT_BACKUP_DIR"
+git rev-parse HEAD > "$FINDIT_BACKUP_DIR/commit"
+/home/finditsdsu/.virtualenvs/findit/bin/python - <<'PY'
+import os, sqlite3
+from pathlib import Path
+backup = Path(os.environ['FINDIT_BACKUP_DIR']) / 'findit.sqlite3'
+with sqlite3.connect('file:/home/finditsdsu/private/findit.sqlite3?mode=ro', uri=True) as source:
+    with sqlite3.connect(backup) as target:
+        source.backup(target)
+print('Database backup:', backup)
+PY
+cp -a /home/finditsdsu/private/uploads "$FINDIT_BACKUP_DIR/uploads"
+git fetch origin work/unified-site
+git merge --ff-only FETCH_HEAD
+git log -1 --format='%H %s'
+```
+
+Click **Reload** in the PythonAnywhere **Web** tab. Hard-refresh your browser
+and check `/about`, `/blog#samuel`, and `/resources`. The Technical report (PDF)
+link should open `/static/docs/phase1-technical-report.pdf` in a new tab; Samuel
+Shadi should be spelled correctly on its cover and in the contributions section.
+If the PDF viewer keeps an older cached document, hard-refresh that tab too.
+Confirm `/admin/claims` still requires sign-in. No initialization, migration,
+settings replacement, or upload copying into the checkout is needed for this
+refinement. These commands prepare the update; they do not reload the web app.
+
+### Updates that also change Python code or the schema
+
 In a PythonAnywhere Bash console, back up the private data **before** the pull
 or migration. These commands keep the backup outside Git and stop if the branch
 cannot advance cleanly:

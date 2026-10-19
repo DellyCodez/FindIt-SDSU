@@ -36,7 +36,7 @@ We're splitting up the work so we can build different parts at the same time.
 | --- | --- | --- |
 | Alexander | `work/app` | Website, backend, SQLite schema and database integration |
 | Andy | `work/database` | Testing, sample data, ER diagram, SQL checks, and bug fixes |
-| Samueel Shadi | `work/docs` | Project website, technical report, and presentation |
+| Samuel Shadi | `work/docs` | Project website, technical report, and presentation |
 | Integration | `work/unified-site` | Unified Flask website and PythonAnywhere preparation |
 
 **Using AI to help?** ChatGPT, Gemini, Claude, and other tools can all use this repository for context. Start by giving the tool the GitHub link and asking it to read this README, [the database plan](docs/database.md), [the Phase 1 checklist](docs/phase-1.md), and [the temporary AI instructions](AGENTS.md). Tell it your name and branch—just connecting GitHub won't tell it which part you're responsible for.

@@ -1,9 +1,78 @@
 {% extends 'base.html' %}
 {% block title %}About — FindIt SDSU{% endblock %}
 {% block content %}
-<section class="page-intro story-intro"><div class="container"><p class="eyebrow">Why FindIt exists</p><h1>Good things deserve<br>a way back.</h1><p>Lost and found works best when the right details meet in the same place. We built FindIt to make that easier.</p></div></section>
-<section class="story-section"><div class="container story-grid"><div><p class="eyebrow">Our mission</p><h2>One item. Too many places to look.</h2></div><div><p>A bottle left at the library might be mentioned in a group chat. Its owner might search somewhere else entirely. A color, a date, and a small mark could connect those stories, if they are easy to compare.</p><p>FindIt brings scattered reports into one searchable place, so students can share what they know and compare possible matches.</p><a class="text-link" href="{{ url_for('items') }}">Explore the reports <span aria-hidden="true">↗</span></a></div></div></section>
-<section class="story-section vision-section"><div class="container story-grid"><div><p class="eyebrow">Our vision</p><h2>A clearer way back.</h2></div><div><p>We want reconnecting people with lost belongings to feel simple and accessible. Structured reports make important details easier to find; possible matches help people follow a lead; private claims give the review team a careful next step.</p></div></div></section>
-<section class="team-section"><div class="container"><div class="section-heading"><div><p class="eyebrow">Meet the team</p><h2>Built with care for the details.</h2></div><p class="section-caption">Three collaborators, one working product.</p></div><div class="team-grid"><article class="team-card"><div class="team-monogram" aria-hidden="true">AH</div><p class="role">Application &amp; Database Development</p><h3>Alexander Hills</h3><p>Develops the Flask application and SQLite integration, including reports, photo uploads, search, matching, and claims.</p></article><article class="team-card"><div class="team-monogram" aria-hidden="true">AT</div><p class="role">Database Design &amp; Quality Assurance</p><h3>Andy Thai</h3><p>Supports database design and ER diagrams, reviews SQL, and tests data integrity and application behavior.</p></article><article class="team-card"><div class="team-monogram" aria-hidden="true">SS</div><p class="role">Documentation &amp; Presentation</p><h3>Samueel Shadi</h3><p>Explains the product through documentation, technical reports, presentation materials, and project resources.</p></article></div></div></section>
-<section class="home-cta"><div class="container"><div><p class="eyebrow">Have something to share?</p><h2>Help a story find its ending.</h2></div><a class="button button-light" href="{{ url_for('new_item') }}">Report an item <span aria-hidden="true">↗</span></a></div></section>
+<section class="page-intro story-intro">
+  <div class="container about-hero-grid">
+    <div>
+      <p class="eyebrow">About FindIt</p>
+      <h1>A clearer way back<br>to <em>what’s yours.</em></h1>
+      <p>A shared place for campus lost and found. Report what’s missing, share what you’ve found, and compare the details that could connect them.</p>
+      <a class="text-link" href="{{ url_for('items') }}">Explore the reports <span aria-hidden="true">↗</span></a>
+    </div>
+    <div class="about-principles">
+      <p class="eyebrow">Designed around real questions</p>
+      <dl>
+        <div><dt>Where should I look?</dt><dd>Search lost and found reports in one place.</dd></div>
+        <div><dt>Could this be mine?</dt><dd>Compare photos, locations, dates, and shared details.</dd></div>
+        <div><dt>What happens next?</dt><dd>Send a private claim for a reviewer to consider.</dd></div>
+      </dl>
+    </div>
+  </div>
+</section>
+
+<section class="story-section" aria-labelledby="mission-heading">
+  <div class="container story-grid">
+    <div><p class="eyebrow">Our mission</p><h2 id="mission-heading">One item. Too many places to look.</h2></div>
+    <div>
+      <p>A bottle left at the library might be mentioned in a group chat. Its owner might be searching a different feed or asking at another desk. Useful details get scattered, and the two reports never meet.</p>
+      <p>FindIt gives those details a shared home. A location, a date, a photo, or a distinctive mark can help someone decide which report is worth a closer look.</p>
+      <p>We’re building an independent student prototype for CS 514. It is not an official SDSU service, and a suggested match is a lead to review, not proof of ownership.</p>
+    </div>
+  </div>
+</section>
+
+<section class="about-product" aria-labelledby="product-heading">
+  <div class="container">
+    <div class="section-heading">
+      <div><p class="eyebrow">How the details connect</p><h2 id="product-heading">From a report to a next step.</h2></div>
+      <a class="text-link" href="{{ url_for('product') }}">See how it works <span aria-hidden="true">↗</span></a>
+    </div>
+    <ol class="about-journey">
+      <li><span aria-hidden="true">01</span><h3>Share what you know.</h3><p>Report a lost or found item with its location, date, and up to three photos.</p></li>
+      <li><span aria-hidden="true">02</span><h3>Narrow the search.</h3><p>Search by a detail you remember, then filter by category or campus location.</p></li>
+      <li><span aria-hidden="true">03</span><h3>Follow a possible match.</h3><p>See compatible reports and the public clues behind each suggestion.</p></li>
+      <li><span aria-hidden="true">04</span><h3>Keep the claim private.</h3><p>Share an identifying detail with the reviewer. Approval marks the item returned.</p></li>
+    </ol>
+  </div>
+</section>
+
+<section class="team-section" aria-labelledby="team-heading">
+  <div class="container">
+    <div class="section-heading">
+      <div><p class="eyebrow">Meet the team</p><h2 id="team-heading">Three people behind FindIt.</h2></div>
+      <p class="section-caption">Application, database, and documentation.</p>
+    </div>
+    <div class="team-grid">
+      <article class="team-card">
+        <div class="team-monogram" aria-hidden="true">AH</div>
+        <h3>Alexander Hills</h3>
+        <p class="role">Application Development &amp; Database Integration</p>
+        <p>Develops the Flask application and SQLite integration, including reporting, photo uploads, search, matching, claims, website integration, and deployment.</p>
+      </article>
+      <article class="team-card">
+        <div class="team-monogram" aria-hidden="true">AT</div>
+        <h3>Andy Thai</h3>
+        <p class="role">Database Design &amp; Quality Assurance</p>
+        <p>Prepares the ER diagram, tests database relationships and constraints, verifies SQL integrity, and contributes automated quality checks.</p>
+      </article>
+      <article class="team-card">
+        <div class="team-monogram" aria-hidden="true">SS</div>
+        <h3>Samuel Shadi</h3>
+        <p class="role">Documentation &amp; Presentation</p>
+        <p>Prepares technical documentation and presentation materials, helping explain the project’s implementation and how to use the application.</p>
+      </article>
+    </div>
+  </div>
+</section>
+<section class="home-cta"><div class="container"><div><p class="eyebrow">Lost something? Found something?</p><h2>Start with what you know.</h2></div><a class="button button-light" href="{{ url_for('new_item') }}">Report an item <span aria-hidden="true">↗</span></a></div></section>
 {% endblock %}

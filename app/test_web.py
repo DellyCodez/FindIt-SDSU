@@ -37,6 +37,18 @@ def test_pages_and_filters(tmp_path):
     assert b"No items found" in client.get("/items?q=unfindable").data
 
 
+def test_technical_report_is_linked_and_served_as_pdf(tmp_path):
+    client, _, _ = client_and_store(tmp_path)
+    report_path = "/static/docs/phase1-technical-report.pdf"
+    resources = client.get("/resources")
+    assert resources.status_code == 200
+    assert resources.data.count(f'href="{report_path}"'.encode()) == 1
+    response = client.get(report_path)
+    assert response.status_code == 200
+    assert response.mimetype == "application/pdf"
+    assert response.data.startswith(b"%PDF-")
+
+
 def test_report_claim_review_journey_and_privacy(tmp_path):
     client, store, path = client_and_store(tmp_path)
     csrf = token(client)
