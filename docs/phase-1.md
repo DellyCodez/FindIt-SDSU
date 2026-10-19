@@ -1,32 +1,19 @@
-# Phase 1 checklist — CS 514
+# CS 514 — Phase 1 project deliverables
 
-This is what we need to turn in for the draft project. We'll check things off as they're finished.
+FindIt SDSU is a team database-product project. This file records the course deliverable categories and links to the current implementation rather than acting as an out-of-date development checklist.
 
-## Project (100 points)
+| Deliverable | Source |
+| --- | --- |
+| Eight-minute presentation and two-minute Q&A | Team presentation materials |
+| About page and team profiles | [Live About page](https://finditsdsu.pythonanywhere.com/about) |
+| Product overview and user instructions | [Live application](https://finditsdsu.pythonanywhere.com/) |
+| Individual team blog contributions | [Live Blog](https://finditsdsu.pythonanywhere.com/blog) |
+| Source code and runnable prototype | [`work/unified-site`](https://github.com/DellyCodez/FindIt-SDSU/tree/work/unified-site) |
+| Technical report, implementation, screenshots, user guide | [Technical PDF](https://finditsdsu.pythonanywhere.com/static/docs/phase1-technical-report.pdf) |
+| Individual teammate evaluations | Submitted confidentially through the Canvas assignment, not this repository |
 
-- [ ] **Presentation — 25 pts.** Eight minutes presenting, two minutes Q&A. Everyone participates.
-- [ ] **About page — 10 pts.** Introduce the project, team, problem, and what it could be used for.
-- [ ] **Product overview and instructions — 10 pts.** Show what the site does and how to use it.
-- [ ] **Blog — 10 pts.** At least one paragraph written by each member.
-- [ ] **Source code and runnable app — 25 pts.** GitHub link, actual working application, and explanation of what we built.
-- [ ] **Technical document — 10 pts.** PDF with database design, implementation, course concepts, screenshots, and a user guide.
-- [ ] **Peer evaluations — 10 pts.** Each person submits confidential evaluations in their own Canvas comments. These do not go on the website.
+The separate Canvas discussion requires reviews of two other projects and substantive replies about the team's product.
 
-The course instructions require a separate project website, built with Google Sites or another site builder, linking to the deliverables above (except peer evaluations).
+The report and individual project submissions should accurately identify each contributor's work, including the tools used and any required development-assistance disclosure. The three-person team is instructor-approved.
 
-## Discussion (50 points)
-
-- [ ] Review at least two classmates' projects and explain usefulness, suggested improvements, and a rating out of 10 (**30 pts**).
-- [ ] Write at least two substantive replies in the project discussion (**20 pts**).
-- [ ] Post the project website link in the discussion and submit it for the assignment.
-
-## Before submission
-
-- [ ] Confirm presentation date and all Canvas due times.
-- [ ] Check that the application actually runs and the database saves changes.
-- [ ] Open every link from another browser/device.
-- [ ] Include actual screenshots and results, not mockups presented as working features.
-- [ ] Explain any AI assistance, what was changed or checked, and what each person contributed.
-- [ ] Confirm team size with the instructor or TA. The instructions say four to six students; we're currently working with three.
-
-*Based on the Fall 2026 CS 514 Final Database Product Project instructions, Phase 1.*
+*This project is an independent student prototype; it is not an official SDSU service.*
