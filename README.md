@@ -36,18 +36,12 @@ We're splitting up the work so we can build different parts at the same time.
 | --- | --- | --- |
 | Alexander | `work/app` | Website, backend, SQLite schema and database integration |
 | Andy | `work/database` | Testing, sample data, ER diagram, SQL checks, and bug fixes |
-<<<<<<< HEAD
-| Samuel | `work/docs` | Project website, technical report, and presentation |
-=======
 | Samueel Shadi | `work/docs` | Project website, technical report, and presentation |
 | Integration | `work/unified-site` | Unified Flask website and PythonAnywhere preparation |
->>>>>>> origin/work/unified-site
 
 **Using AI to help?** ChatGPT, Gemini, Claude, and other tools can all use this repository for context. Start by giving the tool the GitHub link and asking it to read this README, [the database plan](docs/database.md), [the Phase 1 checklist](docs/phase-1.md), and [the temporary AI instructions](AGENTS.md). Tell it your name and branch—just connecting GitHub won't tell it which part you're responsible for.
 
 Work in your own branch, keep changes to your part of the project, and don't push directly to `main`. When you're done, push your branch and open a pull request so we can review it before merging. Alexander is implementing the database; Andy will help test the schema and app before we merge everything.
-<<<<<<< HEAD
-=======
 
 ## Run the unified website locally
 
@@ -100,7 +94,6 @@ Try the demo in this order:
 4. Open `/admin/claims` and sign in as the reviewer to approve or reject the claim. Approval marks the item returned and prevents a second approval. `/admin/items` lets the same reviewer hide or restore a public report without deleting its history.
 
 The public configuration uses a single admin password for private claim review and report moderation. It does not provide student accounts, automatic screening, ownership verification, or email delivery; use fictional contact information only until operational safeguards are added. Public item pages and matching results exclude the separate report contact email and private claim explanations. The campus and starter item pictures are generated demonstration imagery, not real lost property. Each new report uses a shared fictional demo reporter because there is no student login. Andy will independently test the implemented database and app, then add the ER diagram, sample queries, and additional QA evidence.
->>>>>>> origin/work/unified-site
 
 ## Progress
 
