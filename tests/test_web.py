@@ -25,6 +25,11 @@ def token(client):
         return session["csrf_token"]
 
 
+# ==============================================================================
+# SECTION: NETWORKING & ROUTE ACCESSIBILITY
+# ==============================================================================
+
+# Networking: verifies all GET routes return 200, missing resources return 404, and search filtering works.
 def test_pages_and_filters(tmp_path):
     client, _, _ = client_and_store(tmp_path)
     for path in ("/", "/items", "/items/new", "/items/1", "/items/2/claim", "/review/claims"):
@@ -37,6 +42,11 @@ def test_pages_and_filters(tmp_path):
     assert b"No items found" in client.get("/items?q=unfindable").data
 
 
+# ==============================================================================
+# SECTION: SECURITY & PRIVACY CONTROLS
+# ==============================================================================
+
+# Security: verifies reporter email redaction from public pages, private claim details only for reviewers, and CSRF protection.
 def test_report_claim_review_journey_and_privacy(tmp_path):
     client, store, path = client_and_store(tmp_path)
     csrf = token(client)
@@ -77,6 +87,11 @@ def test_report_claim_review_journey_and_privacy(tmp_path):
     assert b"Striped umbrella" in new_app.test_client().get("/items?q=umbrella").data
 
 
+# ==============================================================================
+# SECTION: BOUNDARY & VALIDATION EDGE CASES
+# ==============================================================================
+
+# Boundary: verifies rejection of wrong CSRF token, future dates, exposed contact info in descriptions, and bad emails.
 def test_bad_input_and_csrf_rejected(tmp_path):
     client, store, _ = client_and_store(tmp_path)
     csrf = token(client)
@@ -106,6 +121,11 @@ def test_bad_input_and_csrf_rejected(tmp_path):
     assert store.list_claims() == []
 
 
+# ==============================================================================
+# SECTION: PERSISTENCE & DATA SURVIVABILITY
+# ==============================================================================
+
+# Persistence: verifies that reports and rejected claims survive full server/store restarts without data loss.
 def test_lost_report_and_rejected_claim_survive_restart(tmp_path):
     client, store, path = client_and_store(tmp_path)
     csrf = token(client)
@@ -134,6 +154,11 @@ def test_lost_report_and_rejected_claim_survive_restart(tmp_path):
     assert restarted.list_claims()[0]["status"] == "Rejected"
 
 
+# ==============================================================================
+# SECTION: DIRECT SQL CONSTRAINTS & CONCURRENCY
+# ==============================================================================
+
+# Integrity: verifies SQLite foreign keys pragma, direct invalid inserts, and trigger rollbacks on direct SQL operations.
 def test_database_constraints_and_repeatable_setup(tmp_path):
     client, store, path = client_and_store(tmp_path)
     initialize_database(path)

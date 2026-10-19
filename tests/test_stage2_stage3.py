@@ -39,6 +39,11 @@ def report_data(csrf, kind, **changes):
     return {**values, **changes}
 
 
+# ==============================================================================
+# SECTION: SCHEMA EVOLUTION & MIGRATIONS
+# ==============================================================================
+
+# Migration: verifies upgrading v4 database preserves photo metadata, claims, and column renames.
 def test_published_v4_layout_migrates_without_losing_photos_or_claims(tmp_path):
     path = initialize_database(tmp_path / "published-v4.sqlite3")
     store = SQLiteStore(path)
@@ -78,6 +83,54 @@ def test_published_v4_layout_migrates_without_losing_photos_or_claims(tmp_path):
     assert len(SQLiteStore(path).list_photos(created["id"])) == 1
 
 
+# Migration: verifies upgrading v6 database restores submission attempts table without affecting existing rows.
+def test_version_six_migration_preserves_reports_and_claims(tmp_path):
+    path = initialize_database(tmp_path / "version-six.sqlite3")
+    store = SQLiteStore(path)
+    created = store.create_item(report_data("", "Found"))
+    store.submit_claim(created["id"], dict(name="Fictional Owner", contact="owner@example.test",
+                                           explanation="The underside has a tiny painted star."))
+    with closing(connect(path)) as connection:
+        before = {table: connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+                  for table in ("users", "categories", "locations", "items", "item_photos", "claims")}
+        connection.execute("DROP TABLE submission_attempts")
+        connection.execute("PRAGMA user_version = 6")
+    initialize_database(path)
+    initialize_database(path)
+    with closing(connect(path)) as connection:
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 8
+        assert {table: connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+                for table in before} == before
+        assert connection.execute("PRAGMA foreign_key_check").fetchall() == []
+        assert connection.execute("SELECT COUNT(*) FROM submission_attempts").fetchone()[0] == 0
+
+
+# Migration: verifies upgrading v7 database applies report visibility column and indexes cleanly.
+def test_version_seven_migration_preserves_claims_and_visibility_defaults(tmp_path):
+    path = initialize_database(tmp_path / "version-seven.sqlite3")
+    store = SQLiteStore(path)
+    item = store.create_item(report_data("", "Found"))
+    store.submit_claim(item["id"], dict(name="Fictional Owner", contact="owner@example.test",
+                                         explanation="A tiny painted star is underneath."))
+    with closing(connect(path)) as connection:
+        before = [tuple(row) for row in connection.execute("SELECT * FROM claims")]
+        connection.execute("DROP INDEX idx_items_visibility_date")
+        connection.execute("ALTER TABLE items DROP COLUMN visibility")
+        connection.execute("PRAGMA user_version = 7")
+    initialize_database(path)
+    initialize_database(path)
+    with closing(connect(path)) as connection:
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 8
+        assert [tuple(row) for row in connection.execute("SELECT * FROM claims")] == before
+        assert connection.execute("SELECT visibility FROM items WHERE id = ?", (item["id"],)).fetchone()[0] == "Visible"
+        assert connection.execute("PRAGMA foreign_key_check").fetchall() == []
+
+
+# ==============================================================================
+# SECTION: AUTHENTICATION & ACCESS CONTROL
+# ==============================================================================
+
+# Security: verifies that public mode enforces SECRET_KEY, protects /admin routes, and requires valid login passwords.
 def test_public_mode_requires_secrets_and_keeps_admin_private(tmp_path, monkeypatch):
     path = initialize_database(tmp_path / "protected.sqlite3")
     monkeypatch.setenv("FINDIT_PUBLIC", "1")
@@ -115,6 +168,11 @@ def test_public_mode_requires_secrets_and_keeps_admin_private(tmp_path, monkeypa
     assert client.get("/items", base_url="https://untrusted.example").status_code == 400
 
 
+# ==============================================================================
+# SECTION: END-TO-END WORKFLOW & RESTART INTEGRITY
+# ==============================================================================
+
+# Workflow: verifies full end-to-end lifecycle under public security mode across app and database restarts.
 def test_public_photo_match_claim_and_admin_approval_survive_restart(tmp_path, monkeypatch):
     path = initialize_database(tmp_path / "journey.sqlite3")
     monkeypatch.setenv("FINDIT_PUBLIC", "1")
@@ -167,6 +225,11 @@ def test_public_photo_match_claim_and_admin_approval_survive_restart(tmp_path, m
     assert f'/items/{found_id}"'.encode() not in client.get("/", base_url=PUBLIC_ORIGIN).data
 
 
+# ==============================================================================
+# SECTION: INPUT SANITIZATION & BOUNDARY VALIDATION
+# ==============================================================================
+
+# Boundary: verifies fuzzy model normalization and rejects exposed email/phone patterns in public fields.
 def test_model_normalization_and_public_field_validation(tmp_path):
     assert same_model("iPhone 14 Pro Max", "14 Pro Max")
     assert not same_model("Galaxy S23", "Pixel S23")
@@ -183,6 +246,11 @@ def test_model_normalization_and_public_field_validation(tmp_path):
     assert len(SQLiteStore(path).list_items()) == 6
 
 
+# ==============================================================================
+# SECTION: NETWORKING & RATE LIMITING
+# ==============================================================================
+
+# Networking: verifies rolling window rate limiting (HTTP 429) across separate app instances and bot honeypots.
 def test_public_forms_reject_bots_and_limit_attempts_across_app_instances(tmp_path, monkeypatch):
     path = initialize_database(tmp_path / "limits.sqlite3")
     monkeypatch.setenv("FINDIT_PUBLIC", "1")
@@ -213,27 +281,11 @@ def test_public_forms_reject_bots_and_limit_attempts_across_app_instances(tmp_pa
     assert len(SQLiteStore(path).list_items()) == 6
 
 
-def test_version_six_migration_preserves_reports_and_claims(tmp_path):
-    path = initialize_database(tmp_path / "version-six.sqlite3")
-    store = SQLiteStore(path)
-    created = store.create_item(report_data("", "Found"))
-    store.submit_claim(created["id"], dict(name="Fictional Owner", contact="owner@example.test",
-                                           explanation="The underside has a tiny painted star."))
-    with closing(connect(path)) as connection:
-        before = {table: connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
-                  for table in ("users", "categories", "locations", "items", "item_photos", "claims")}
-        connection.execute("DROP TABLE submission_attempts")
-        connection.execute("PRAGMA user_version = 6")
-    initialize_database(path)
-    initialize_database(path)
-    with closing(connect(path)) as connection:
-        assert connection.execute("PRAGMA user_version").fetchone()[0] == 8
-        assert {table: connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
-                for table in before} == before
-        assert connection.execute("PRAGMA foreign_key_check").fetchall() == []
-        assert connection.execute("SELECT COUNT(*) FROM submission_attempts").fetchone()[0] == 0
+# ==============================================================================
+# SECTION: MODERATION & CONTENT PRIVACY
+# ==============================================================================
 
-
+# Moderation: verifies that an admin can toggle item visibility to hide reports, photos, and match results from public views.
 def test_admin_moderation_hides_reports_photos_and_matches(tmp_path, monkeypatch):
     path = initialize_database(tmp_path / "moderation.sqlite3")
     store = SQLiteStore(path)
@@ -269,23 +321,3 @@ def test_admin_moderation_hides_reports_photos_and_matches(tmp_path, monkeypatch
                       data={"csrf_token": csrf_token(admin), "visibility": "Visible"}).status_code == 302
     assert visitor.get(f"/items/{item['id']}", base_url=PUBLIC_ORIGIN).status_code == 200
     assert visitor.get(f"/photos/{photo_id}", base_url=PUBLIC_ORIGIN).status_code == 200
-
-
-def test_version_seven_migration_preserves_claims_and_visibility_defaults(tmp_path):
-    path = initialize_database(tmp_path / "version-seven.sqlite3")
-    store = SQLiteStore(path)
-    item = store.create_item(report_data("", "Found"))
-    store.submit_claim(item["id"], dict(name="Fictional Owner", contact="owner@example.test",
-                                         explanation="A tiny painted star is underneath."))
-    with closing(connect(path)) as connection:
-        before = [tuple(row) for row in connection.execute("SELECT * FROM claims")]
-        connection.execute("DROP INDEX idx_items_visibility_date")
-        connection.execute("ALTER TABLE items DROP COLUMN visibility")
-        connection.execute("PRAGMA user_version = 7")
-    initialize_database(path)
-    initialize_database(path)
-    with closing(connect(path)) as connection:
-        assert connection.execute("PRAGMA user_version").fetchone()[0] == 8
-        assert [tuple(row) for row in connection.execute("SELECT * FROM claims")] == before
-        assert connection.execute("SELECT visibility FROM items WHERE id = ?", (item["id"],)).fetchone()[0] == "Visible"
-        assert connection.execute("PRAGMA foreign_key_check").fetchall() == []

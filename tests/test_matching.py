@@ -17,10 +17,20 @@ def report(store, kind, title, description, category="Drinkware", location="Libr
         **attributes))
 
 
+# ==============================================================================
+# SECTION: STRING PARSING & TOKENIZATION
+# ==============================================================================
+
+# Parsing: verifies that stopwords, demo labels, and long synthetic numbers are excluded from matching word sets.
 def test_match_explanations_ignore_demo_labels_and_long_generated_numbers():
     assert words("Fictional demo bottle 1792298462624 with crescent sticker") == {"crescent", "sticker"}
 
 
+# ==============================================================================
+# SECTION: ATTRIBUTE BOUNDARIES & MODEL MATCHING
+# ==============================================================================
+
+# Boundary: verifies that structured phone matching correctly isolates exact model and excludes generic cases or earbuds.
 def test_structured_phone_matching_rejects_earbuds_and_generic_case(tmp_path):
     path = initialize_database(tmp_path / "phone.sqlite3")
     store = SQLiteStore(path)
@@ -43,6 +53,11 @@ def test_structured_phone_matching_rejects_earbuds_and_generic_case(tmp_path):
     assert all("probability" not in reason.lower() for reason in matches[0]["reasons"])
 
 
+# ==============================================================================
+# SECTION: HEURISTIC RANKING & FALSE-LEAD EXCLUSION
+# ==============================================================================
+
+# Heuristics: verifies score explanations, category/location weights, and exclusion of stale or opposite-category items.
 def test_known_pair_reasons_and_false_leads(tmp_path):
     path = initialize_database(tmp_path / "matching.sqlite3")
     store = SQLiteStore(path)
@@ -76,6 +91,7 @@ def test_known_pair_reasons_and_false_leads(tmp_path):
     assert b"proof of ownership" in page.data
 
 
+# Edge case: verifies ranking order when multiple items share attributes, and ensures approved/returned items stop matching.
 def test_public_evidence_ranking_returned_items_and_private_claims(tmp_path):
     store = SQLiteStore(initialize_database(tmp_path / "ranking.sqlite3"))
     lost = report(store, "Lost", "Purple jacket with moon patch",
@@ -88,8 +104,8 @@ def test_public_evidence_ranking_returned_items_and_private_claims(tmp_path):
                   "Purple jacket with a moon patch and orange zipper.",
                   category="Clothing", location="Campus Green", days_ago=19)
     later = report(store, "Found", "Purple jacket with moon patch",
-                   "Purple jacket with a moon patch and orange zipper.",
-                   category="Clothing", days_ago=0)
+                  "Purple jacket with a moon patch and orange zipper.",
+                  category="Clothing", days_ago=0)
     color_only = report(store, "Found", "Purple scarf",
                         "Purple wool scarf with tassels.",
                         category="Clothing", days_ago=19)
@@ -124,6 +140,7 @@ def test_public_evidence_ranking_returned_items_and_private_claims(tmp_path):
     assert possible_matches(store, store.get_item(best["id"])) == []
 
 
+# Networking & Query: verifies sorting filters (newest, oldest, relevance) and query parameter handling.
 def test_relevance_sort_and_active_filters(tmp_path):
     store = SQLiteStore(initialize_database(tmp_path / "sort.sqlite3"))
     older = report(store, "Lost", "Canvas camera pouch",
@@ -139,6 +156,11 @@ def test_relevance_sort_and_active_filters(tmp_path):
     assert page.data.index(b"Canvas camera pouch") < page.data.index(b"Black tote bag")
 
 
+# ==============================================================================
+# SECTION: SCHEMA MIGRATION & BACKWARD COMPATIBILITY
+# ==============================================================================
+
+# Migration: verifies that migrating older database schema versions preserves all existing reports, claims, and indexes.
 def test_existing_database_upgrades_without_losing_records(tmp_path):
     path = initialize_database(tmp_path / "upgrade.sqlite3")
     store = SQLiteStore(path)

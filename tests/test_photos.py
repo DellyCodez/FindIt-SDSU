@@ -37,6 +37,11 @@ def setup(tmp_path):
     return store, client, csrf
 
 
+# ==============================================================================
+# SECTION: ENCODING & MEDIA PROCESSING
+# ==============================================================================
+
+# Media processing: verifies that PNG, JPEG, and WEBP uploads are re-encoded to sanitized WebP, EXIF is stripped, and files persist.
 def test_three_supported_photo_formats_are_reencoded_shown_and_persist(tmp_path):
     store, client, csrf = setup(tmp_path)
     response = client.post("/items/new", data=form(csrf, [
@@ -65,6 +70,11 @@ def test_three_supported_photo_formats_are_reencoded_shown_and_persist(tmp_path)
     assert len(list(store.upload_dir.glob("*.webp"))) == 3
 
 
+# ==============================================================================
+# SECTION: INPUT VALIDATION & SECURITY REJECTION
+# ==============================================================================
+
+# Security: verifies rejection of non-images, mismatched extensions, oversized files (>5MB), and excess photos (>3).
 def test_bad_photos_do_not_create_reports_or_files(tmp_path):
     store, client, csrf = setup(tmp_path)
     bad_inputs = [
@@ -83,6 +93,26 @@ def test_bad_photos_do_not_create_reports_or_files(tmp_path):
         assert not list(store.upload_dir.glob("*.webp"))
 
 
+# Security: verifies that photo endpoint enforces X-Content-Type-Options: nosniff and rejects path traversal.
+def test_photo_endpoint_security_and_path_traversal_protection(tmp_path):
+    store, client, csrf = setup(tmp_path)
+    client.post("/items/new", data=form(csrf, [(picture(), "clean.png")]),
+                content_type="multipart/form-data")
+    item = store.list_items({"q": "Fictional red bottle"})[0]
+    photo = store.list_photos(item["id"])[0]
+    res = client.get(f"/photos/{photo['id']}")
+    assert res.status_code == 200
+    assert res.headers.get("X-Content-Type-Options") == "nosniff"
+    assert client.get("/photos/../database/schema.sql").status_code in (404, 400)
+    assert client.get("/photos/-1").status_code == 404
+    assert client.get("/photos/not-an-id").status_code == 404
+
+
+# ==============================================================================
+# SECTION: DATABASE CONSTRAINTS & CASCADES
+# ==============================================================================
+
+# Integrity: verifies foreign key constraints on item_photos, position bounds (1-3), and repeatable initialization.
 def test_photo_relationship_constraints_and_repeatable_setup(tmp_path):
     store, _, _ = setup(tmp_path)
     initialize_database(store.path)
@@ -102,6 +132,11 @@ def test_photo_relationship_constraints_and_repeatable_setup(tmp_path):
             """, ("b" * 32 + ".webp", 4, "image/webp", 80, 60, 100))
 
 
+# ==============================================================================
+# SECTION: SCHEMA UPGRADES & DATA RETENTION
+# ==============================================================================
+
+# Migration: verifies that migrating from schema version 4 preserves uploaded photos on disk and associated claims.
 def test_v4_upgrade_preserves_uploaded_photos_and_claims(tmp_path):
     store, client, csrf = setup(tmp_path)
     client.post("/items/new", data=form(csrf, [(picture(), "bottle.png")]),
