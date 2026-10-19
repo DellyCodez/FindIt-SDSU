@@ -1,0 +1,152 @@
+/* About-only composition. Shared navigation, typography tokens, and app styles stay intact. */
+.about-page { --ab-burgundy: #831b2e; --ab-stage: #eee7dd; }
+.about-page h1, .about-page h2, .about-page h3 { font-family: var(--serif); font-weight: 400; letter-spacing: -.035em; }
+.about-page h2 { font-size: clamp(34px, 3.35vw, 48px); line-height: 1.1; margin: 0; }
+.about-page figure { margin: 0; }
+.about-page img { display: block; width: 100%; height: auto; }
+.about-page .eyebrow { font-size: 11px; }
+.about-page .text-link { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; }
+.about-page .ab-hero { background: var(--cream); border-bottom: 1px solid var(--line); }
+.about-page .ab-hero-grid { display: grid; grid-template-columns: 1fr 1.2fr; align-items: center; gap: 54px; padding-block: 62px; }
+.about-page .ab-hero-copy { min-width: 0; padding-bottom: 8px; }
+.about-page h1 { font-size: clamp(48px, 4.35vw, 64px); line-height: 1.06; margin: 0; text-wrap: initial; letter-spacing: -.045em; }
+.about-page h1 em { color: var(--red); font-style: normal; }
+.about-page .ab-lede { max-width: 39ch; color: #57504b; font-size: 18px; line-height: 1.7; margin: 24px 0 27px; }
+.about-page .ab-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 20px; }
+.about-page .ab-origin { color: var(--muted); font-size: 12px; margin: 27px 0 0; }
+.about-page .ab-hero-product { min-width: 0; padding: 27px 25px 19px; border: 1px solid #771528; border-radius: 20px; background: var(--ab-burgundy); }
+.about-page .ab-browser { overflow: hidden; border: 1px solid #d9d0c6; border-radius: 9px; background: #fff; box-shadow: 0 14px 30px #3e0f2033; }
+.about-page .ab-browser-bar { height: 30px; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-inline: 11px; background: #faf8f5; border-bottom: 1px solid #e5dfd7; color: #746c67; font-size: 9px; }
+.about-page .ab-window-dots { display: flex; gap: 4px; }
+.about-page .ab-window-dots i { width: 5px; height: 5px; border: 1px solid #b6a9a0; border-radius: 50%; }
+.about-page .ab-window-mark { font-size: 14px; }
+.about-page .ab-hero-product figcaption { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 17px; color: #f4dfe3; font-size: 11px; }
+.about-page .ab-live-dot { display: inline-block; flex: 0 0 5px; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.about-page .ab-story { padding-block: 76px 79px; scroll-margin-top: 100px; }
+.about-page .ab-story-grid { display: grid; grid-template-columns: 1fr 1.05fr; gap: clamp(40px, 7vw, 100px); }
+.about-page .ab-story h2 { max-width: 480px; }
+.about-page .ab-story-copy > p { color: var(--muted); font-size: 16px; line-height: 1.75; margin: 0 0 17px; }
+.about-page .ab-story-copy > .ab-story-lead { font-size: 21px; line-height: 1.5; color: var(--ink); }
+.about-page .ab-story-copy > p:last-child { margin-bottom: 0; }
+.about-page .ab-product { padding-block: 73px 35px; background: var(--cream); border-block: 1px solid var(--line); }
+.about-page .ab-section-heading { display: flex; align-items: end; justify-content: space-between; gap: 40px; margin-bottom: 35px; }
+.about-page .ab-section-note { max-width: 330px; }
+.about-page .ab-section-note > p, .about-page .ab-team-intro { color: var(--muted); font-size: 15px; line-height: 1.7; margin: 0 0 14px; }
+.about-page .ab-product-grid { display: grid; grid-template-columns: .9fr 1.1fr; gap: 28px; }
+.about-page .ab-product-figure { min-width: 0; }
+.about-page .ab-report-stage, .about-page .ab-match-stage { height: 648px; padding: 30px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px solid #e1d7cb; border-radius: 16px; }
+.about-page .ab-report-stage { background: var(--ab-stage); }
+.about-page .ab-phone { width: 240px; max-width: 100%; overflow: hidden; border: 8px solid #302b2b; border-radius: 26px; box-shadow: 0 20px 34px #45312326; background: #fff; }
+.about-page .ab-match-stage { background: #eadbd8; }
+.about-page .ab-match-stage > img { width: min(100%, 340px); border-radius: 12px; box-shadow: 0 16px 32px #6a34351c; }
+.about-page .ab-match-label { display: flex; align-items: center; gap: 8px; color: #7b2837; font-size: 10px; font-weight: 700; margin-bottom: 19px; }
+.about-page .ab-product-figure figcaption { padding: 27px 3px 0; }
+.about-page .ab-product-figure figcaption .eyebrow { margin-bottom: 10px; }
+.about-page .ab-product-figure h3 { font-size: 29px; line-height: 1.15; margin: 0 0 13px; }
+.about-page .ab-product-figure figcaption > p:not(.eyebrow) { max-width: 54ch; color: var(--muted); font-size: 15px; line-height: 1.7; margin: 0 0 15px; }
+.about-page .ab-product-figure figcaption > .ab-ownership-note { font-size: 12px; }
+.about-page .ab-capture-note { text-align: center; color: var(--muted); font-size: 11px; margin: 34px 0 0; }
+.about-page .ab-purpose { padding-block: 55px; background: var(--charcoal); color: #fff; }
+.about-page .ab-purpose-grid { display: grid; grid-template-columns: 1.05fr 1fr; gap: 65px; }
+.about-page .ab-purpose-grid > div + div { padding-left: 65px; border-left: 1px solid #645253; }
+.about-page .ab-purpose .eyebrow { color: #e7adb8; }
+.about-page .ab-purpose h2 { font-size: 37px; }
+.about-page .ab-purpose h3 { font-size: 31px; line-height: 1.15; margin: 0; }
+.about-page .ab-purpose p:not(.eyebrow) { max-width: 53ch; font-size: 15px; line-height: 1.75; color: #e2d6d1; margin: 17px 0 0; }
+.about-page .ab-team { padding-block: 77px 65px; }
+.about-page .ab-team-intro { max-width: 305px; margin-bottom: 0; }
+.about-page .ab-team-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px; }
+.about-page .ab-profile { border-top: 2px solid var(--red); padding-top: 22px; }
+.about-page .ab-profile-discipline { font-size: 10px; color: var(--muted); font-weight: 750; letter-spacing: .1em; text-transform: uppercase; margin: 0 0 23px; }
+.about-page .ab-profile h3 { font-size: 32px; line-height: 1.15; margin: 0 0 15px; }
+.about-page .ab-profile-role { min-height: 42px; font-size: 11px; font-weight: 750; letter-spacing: .065em; text-transform: uppercase; color: var(--red); line-height: 1.65; margin: 0 0 18px; }
+.about-page .ab-profile > p:last-child { color: var(--muted); font-size: 14px; line-height: 1.75; margin: 0; max-width: 40ch; }
+.about-page .ab-team-link { display: inline-flex; margin-top: 33px; }
+.about-page .ab-closing { padding-bottom: 70px; }
+.about-page .ab-closing-panel { display: flex; align-items: center; justify-content: space-between; gap: 35px; padding: 40px 44px; background: var(--cream); border: 1px solid var(--line); border-radius: 16px; }
+.about-page .ab-closing-panel h2 { font-size: 38px; }
+.about-page .ab-closing-actions { display: flex; flex-wrap: wrap; justify-content: end; gap: 10px; }
+@media (max-width: 1100px) {
+  .about-page .ab-hero-grid { gap: 32px; grid-template-columns: 1fr 1.05fr; }
+  .about-page h1 { font-size: 51px; }
+  .about-page .ab-hero-product { padding: 20px 17px 17px; }
+  .about-page .ab-hero-product figcaption { font-size: 10px; }
+  .about-page .ab-purpose-grid { gap: 40px; }
+  .about-page .ab-purpose-grid > div + div { padding-left: 40px; }
+  .about-page .ab-profile h3 { font-size: 28px; }
+}
+@media (max-width: 900px) {
+  .about-page .ab-hero-grid { grid-template-columns: 1fr; gap: 32px; padding-block: 46px; }
+  .about-page h1 { font-size: 57px; }
+  .about-page .ab-lede { max-width: 48ch; margin-block: 20px; }
+  .about-page .ab-origin { margin-top: 20px; }
+  .about-page .ab-hero-product { max-width: 650px; justify-self: end; width: 100%; padding: 25px 25px 18px; }
+  .about-page .ab-hero-product figcaption { font-size: 11px; }
+  .about-page .ab-story-grid { gap: 35px; }
+  .about-page .ab-story { padding-block: 55px; }
+  .about-page .ab-story-copy > .ab-story-lead { font-size: 19px; }
+  .about-page .ab-product { padding-top: 55px; }
+  .about-page .ab-section-heading { gap: 30px; }
+  .about-page .ab-section-note { max-width: 270px; }
+  .about-page .ab-product-grid { grid-template-columns: 1fr 1fr; gap: 20px; }
+  .about-page .ab-report-stage, .about-page .ab-match-stage { height: 535px; padding: 22px; }
+  .about-page .ab-match-stage > img { width: min(100%, 270px); }
+  .about-page .ab-phone { width: 205px; border-width: 6px; border-radius: 22px; }
+  .about-page .ab-product-figure h3 { font-size: 27px; }
+  .about-page .ab-team-grid { grid-template-columns: 1fr; gap: 0; }
+  .about-page .ab-profile { display: grid; grid-template-columns: .95fr 1.05fr; column-gap: 35px; border-top: 1px solid var(--line); padding-block: 25px; }
+  .about-page .ab-profile-discipline { grid-column: 1; margin-bottom: 13px; }
+  .about-page .ab-profile h3 { grid-column: 1; font-size: 30px; }
+  .about-page .ab-profile-role { grid-column: 1; min-height: 0; margin-bottom: 0; }
+  .about-page .ab-profile > p:last-child { grid-column: 2; grid-row: 1 / span 3; align-self: center; }
+  .about-page .ab-team-link { margin-top: 12px; }
+  .about-page .ab-closing-panel { padding: 30px; }
+  .about-page .ab-closing-actions { flex-direction: column; flex-shrink: 0; }
+}
+@media (max-width: 600px) {
+  .about-page .ab-hero-grid { padding-block: 37px 30px; gap: 26px; }
+  .about-page h1 { font-size: clamp(38px, 10.4vw, 49px); letter-spacing: -.045em; }
+  .about-page .ab-lede { font-size: 16px; line-height: 1.65; max-width: 36ch; margin: 20px 0 23px; }
+  .about-page .ab-actions { gap: 15px; }
+  .about-page .ab-actions .button { padding-inline: 15px; font-size: 12px; }
+  .about-page .ab-actions .text-link { font-size: 12px; }
+  .about-page .ab-origin { font-size: 11px; line-height: 1.6; }
+  .about-page .ab-hero-product { padding: 15px 12px 14px; border-radius: 13px; }
+  .about-page .ab-browser { border-radius: 6px; }
+  .about-page .ab-browser-bar { height: 23px; padding-inline: 8px; font-size: 7px; }
+  .about-page .ab-window-dots { gap: 3px; }
+  .about-page .ab-window-dots i { width: 4px; height: 4px; }
+  .about-page .ab-hero-product figcaption { gap: 6px; font-size: 9px; margin-top: 12px; }
+  .about-page .ab-story-grid { grid-template-columns: 1fr; gap: 24px; }
+  .about-page .ab-story { padding-block: 44px; }
+  .about-page .ab-story h2 { font-size: 33px; }
+  .about-page .ab-story-copy > .ab-story-lead { font-size: 20px; }
+  .about-page .ab-story-copy > p { font-size: 15px; }
+  .about-page .ab-product { padding-block: 44px 28px; }
+  .about-page .ab-section-heading { display: block; margin-bottom: 28px; }
+  .about-page .ab-section-note { max-width: 38ch; margin-top: 19px; }
+  .about-page .ab-section-note > p { font-size: 15px; margin-bottom: 12px; }
+  .about-page .ab-product-grid { grid-template-columns: 1fr; gap: 34px; }
+  .about-page .ab-report-stage, .about-page .ab-match-stage { height: auto; padding: 25px; border-radius: 13px; }
+  .about-page .ab-phone { width: 225px; border-width: 7px; }
+  .about-page .ab-match-stage > img { width: min(100%, 315px); }
+  .about-page .ab-product-figure figcaption { padding-top: 22px; }
+  .about-page .ab-product-figure h3 { font-size: 29px; }
+  .about-page .ab-capture-note { font-size: 11px; line-height: 1.6; margin-top: 28px; }
+  .about-page .ab-purpose { padding-block: 40px; }
+  .about-page .ab-purpose-grid { grid-template-columns: 1fr; gap: 28px; }
+  .about-page .ab-purpose-grid > div + div { border-left: 0; border-top: 1px solid #645253; padding: 27px 0 0; }
+  .about-page .ab-purpose h2 { font-size: 33px; }
+  .about-page .ab-purpose h3 { font-size: 28px; }
+  .about-page .ab-team { padding-block: 46px 39px; }
+  .about-page .ab-team-intro { margin-top: 18px; max-width: 35ch; }
+  .about-page .ab-profile { display: block; padding-block: 24px; }
+  .about-page .ab-profile h3 { font-size: 32px; margin-bottom: 12px; }
+  .about-page .ab-profile-role { margin-bottom: 16px; }
+  .about-page .ab-profile > p:last-child { font-size: 15px; max-width: none; }
+  .about-page .ab-closing { padding-bottom: 38px; }
+  .about-page .ab-closing-panel { display: block; padding: 27px 23px; border-radius: 13px; }
+  .about-page .ab-closing-panel h2 { font-size: 33px; }
+  .about-page .ab-closing-panel .eyebrow { font-size: 10px; }
+  .about-page .ab-closing-actions { align-items: stretch; margin-top: 25px; }
+}

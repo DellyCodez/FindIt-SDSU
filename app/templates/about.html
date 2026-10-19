@@ -1,78 +1,94 @@
 {% extends 'base.html' %}
 {% block title %}About — FindIt SDSU{% endblock %}
+{% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='about.css') }}">{% endblock %}
 {% block content %}
-<section class="page-intro story-intro">
-  <div class="container about-hero-grid">
-    <div>
-      <p class="eyebrow">About FindIt</p>
-      <h1>A clearer way back<br>to <em>what’s yours.</em></h1>
-      <p>A shared place for campus lost and found. Report what’s missing, share what you’ve found, and compare the details that could connect them.</p>
-      <a class="text-link" href="{{ url_for('items') }}">Explore the reports <span aria-hidden="true">↗</span></a>
+<div class="about-page">
+  <section class="ab-hero" aria-labelledby="about-title">
+    <div class="container ab-hero-grid">
+      <div class="ab-hero-copy">
+        <p class="eyebrow">A little closer to found</p>
+        <h1 id="about-title">Lost things.<br><em>Better connections.</em></h1>
+        <p class="ab-lede">Someone is looking. Someone has found it. FindIt gives both sides a place to meet.</p>
+        <div class="ab-actions">
+          <a class="button button-primary" href="{{ url_for('items') }}">Explore the reports <span aria-hidden="true">↗</span></a>
+          <a class="text-link" href="#our-story">Why we built it <span aria-hidden="true">↓</span></a>
+        </div>
+        <p class="ab-origin">An independent student project, made for campus life.</p>
+      </div>
+      <figure class="ab-hero-product">
+        <div class="ab-browser">
+          <div class="ab-browser-bar" aria-hidden="true"><span class="ab-window-dots"><i></i><i></i><i></i></span><span>FindIt SDSU / Browse reports</span><span class="ab-window-mark">↗</span></div>
+          <img src="{{ url_for('static', filename='project/about-browse.webp') }}" width="1160" height="860" alt="The real FindIt Browse page with search, campus filters, and fictional lost and found reports." fetchpriority="high" decoding="async">
+        </div>
+        <figcaption><span class="ab-live-dot" aria-hidden="true"></span>The working app. Fictional reports, real functionality.</figcaption>
+      </figure>
     </div>
-    <div class="about-principles">
-      <p class="eyebrow">Designed around real questions</p>
-      <dl>
-        <div><dt>Where should I look?</dt><dd>Search lost and found reports in one place.</dd></div>
-        <div><dt>Could this be mine?</dt><dd>Compare photos, locations, dates, and shared details.</dd></div>
-        <div><dt>What happens next?</dt><dd>Send a private claim for a reviewer to consider.</dd></div>
-      </dl>
-    </div>
-  </div>
-</section>
+  </section>
 
-<section class="story-section" aria-labelledby="mission-heading">
-  <div class="container story-grid">
-    <div><p class="eyebrow">Our mission</p><h2 id="mission-heading">One item. Too many places to look.</h2></div>
-    <div>
-      <p>A bottle left at the library might be mentioned in a group chat. Its owner might be searching a different feed or asking at another desk. Useful details get scattered, and the two reports never meet.</p>
-      <p>FindIt gives those details a shared home. A location, a date, a photo, or a distinctive mark can help someone decide which report is worth a closer look.</p>
-      <p>We’re building an independent student prototype for CS 514. It is not an official SDSU service, and a suggested match is a lead to review, not proof of ownership.</p>
+  <section class="ab-story" id="our-story" aria-labelledby="story-title">
+    <div class="container ab-story-grid">
+      <div><p class="eyebrow">Why we built it</p><h2 id="story-title">The item isn’t always far away.<br>The information is.</h2></div>
+      <div class="ab-story-copy">
+        <p class="ab-story-lead">A bottle turns up at the library. Its owner is still checking a group chat.</p>
+        <p>Lost belongings get mentioned in social posts, conversations, and disconnected places. The person searching and the person helping might never see the same report.</p>
+        <p>FindIt brings those reports together. One place to look, share a photo, and follow the details that might connect the two.</p>
+      </div>
     </div>
-  </div>
-</section>
+  </section>
 
-<section class="about-product" aria-labelledby="product-heading">
-  <div class="container">
-    <div class="section-heading">
-      <div><p class="eyebrow">How the details connect</p><h2 id="product-heading">From a report to a next step.</h2></div>
-      <a class="text-link" href="{{ url_for('product') }}">See how it works <span aria-hidden="true">↗</span></a>
+  <section class="ab-product" aria-labelledby="product-title">
+    <div class="container">
+      <div class="ab-section-heading">
+        <div><p class="eyebrow">The product, up close</p><h2 id="product-title">Less guesswork.<br>More to go on.</h2></div>
+        <div class="ab-section-note"><p>A photo helps you recognize it. A shared detail gives you a reason to look closer.</p><a class="text-link" href="{{ url_for('product') }}">See the full walkthrough <span aria-hidden="true">↗</span></a></div>
+      </div>
+      <div class="ab-product-grid">
+        <figure class="ab-product-figure">
+          <div class="ab-report-stage"><div class="ab-phone"><img src="{{ url_for('static', filename='project/about-report.webp') }}" width="375" height="880" alt="Actual mobile report form filled with a fictional red water bottle, its category, item type, brand, and color." loading="lazy" decoding="async"></div></div>
+          <figcaption><p class="eyebrow">Report</p><h3>Give the details a place to live.</h3><p>A location, a date, a description, and up to three photos. Share what you know so someone else has something to search for.</p><a class="text-link" href="{{ url_for('new_item') }}">Report an item <span aria-hidden="true">↗</span></a></figcaption>
+        </figure>
+        <figure class="ab-product-figure">
+          <div class="ab-match-stage"><div class="ab-match-label"><span class="ab-live-dot" aria-hidden="true"></span>From an actual possible match</div><img src="{{ url_for('static', filename='project/about-match.webp') }}" width="359" height="568" alt="Actual suggested found bottle report, showing its photo and explanations for matching category, item type, location, date, color, and public details." loading="lazy" decoding="async"></div>
+          <figcaption><p class="eyebrow">Compare &amp; claim</p><h3>A lead you can understand.</h3><p>Possible Matches shows the clues two reports share. If a found item looks like yours, send a private identifying detail for a reviewer to consider.</p><p class="ab-ownership-note">A suggestion helps you investigate. It does not prove ownership.</p></figcaption>
+        </figure>
+      </div>
+      <p class="ab-capture-note">Screenshots from the working FindIt application, using fictional demonstration reports.</p>
     </div>
-    <ol class="about-journey">
-      <li><span aria-hidden="true">01</span><h3>Share what you know.</h3><p>Report a lost or found item with its location, date, and up to three photos.</p></li>
-      <li><span aria-hidden="true">02</span><h3>Narrow the search.</h3><p>Search by a detail you remember, then filter by category or campus location.</p></li>
-      <li><span aria-hidden="true">03</span><h3>Follow a possible match.</h3><p>See compatible reports and the public clues behind each suggestion.</p></li>
-      <li><span aria-hidden="true">04</span><h3>Keep the claim private.</h3><p>Share an identifying detail with the reviewer. Approval marks the item returned.</p></li>
-    </ol>
-  </div>
-</section>
+  </section>
 
-<section class="team-section" aria-labelledby="team-heading">
-  <div class="container">
-    <div class="section-heading">
-      <div><p class="eyebrow">Meet the team</p><h2 id="team-heading">Three people behind FindIt.</h2></div>
-      <p class="section-caption">Application, database, and documentation.</p>
+  <section class="ab-purpose" aria-labelledby="mission-title">
+    <div class="container ab-purpose-grid">
+      <div><p class="eyebrow">Our mission</p><h2 id="mission-title">Make the way back simpler.</h2><p>Give people a clear place to report, search, and compare, so a lost item has a better chance of finding its owner.</p></div>
+      <div><p class="eyebrow">Looking ahead</p><h3>Built here. Room to grow.</h3><p>We’re starting with campus lost and found. In time, we’d like to bring the same approach to other campuses and communities, with the verification and safeguards that wider use needs.</p></div>
     </div>
-    <div class="team-grid">
-      <article class="team-card">
-        <div class="team-monogram" aria-hidden="true">AH</div>
-        <h3>Alexander Hills</h3>
-        <p class="role">Application Development &amp; Database Integration</p>
-        <p>Develops the Flask application and SQLite integration, including reporting, photo uploads, search, matching, claims, website integration, and deployment.</p>
-      </article>
-      <article class="team-card">
-        <div class="team-monogram" aria-hidden="true">AT</div>
-        <h3>Andy Thai</h3>
-        <p class="role">Database Design &amp; Quality Assurance</p>
-        <p>Prepares the ER diagram, tests database relationships and constraints, verifies SQL integrity, and contributes automated quality checks.</p>
-      </article>
-      <article class="team-card">
-        <div class="team-monogram" aria-hidden="true">SS</div>
-        <h3>Samuel Shadi</h3>
-        <p class="role">Documentation &amp; Presentation</p>
-        <p>Prepares technical documentation and presentation materials, helping explain the project’s implementation and how to use the application.</p>
-      </article>
+  </section>
+
+  <section class="ab-team" aria-labelledby="team-title">
+    <div class="container">
+      <div class="ab-section-heading"><div><p class="eyebrow">The people behind FindIt</p><h2 id="team-title">A small team.<br>A shared responsibility.</h2></div><p class="ab-team-intro">Three collaborators bringing the application, its data, and its story together.</p></div>
+      <div class="ab-team-grid">
+        <article class="ab-profile">
+          <p class="ab-profile-discipline">Build / Application</p><h3>Alexander Hills</h3>
+          <p class="ab-profile-role">Application Development<br>&amp; Database Integration</p>
+          <p>Develops the Flask application and SQLite integration: reporting, photo uploads, search, matching, and claims. Connects the website and handles deployment.</p>
+        </article>
+        <article class="ab-profile">
+          <p class="ab-profile-discipline">Verify / Database</p><h3>Andy Thai</h3>
+          <p class="ab-profile-role">Database Design<br>&amp; Quality Assurance</p>
+          <p>Works on database design and the ER diagram, verifies data integrity, and contributes independent database tests and automated quality checks.</p>
+        </article>
+        <article class="ab-profile">
+          <p class="ab-profile-discipline">Explain / Documentation</p><h3>Samuel Shadi</h3>
+          <p class="ab-profile-role">Documentation<br>&amp; Presentation</p>
+          <p>Prepares technical documentation, communicates the project’s implementation, and brings the work together in presentation materials.</p>
+        </article>
+      </div>
+      <a class="text-link ab-team-link" href="{{ url_for('blog') }}">Read our notes from the build <span aria-hidden="true">↗</span></a>
     </div>
-  </div>
-</section>
-<section class="home-cta"><div class="container"><div><p class="eyebrow">Lost something? Found something?</p><h2>Start with what you know.</h2></div><a class="button button-light" href="{{ url_for('new_item') }}">Report an item <span aria-hidden="true">↗</span></a></div></section>
+  </section>
+
+  <section class="ab-closing" aria-labelledby="closing-title">
+    <div class="container"><div class="ab-closing-panel"><div><p class="eyebrow">The next connection starts with you</p><h2 id="closing-title">Have a lead?<br>Put it in the right place.</h2></div><div class="ab-closing-actions"><a class="button button-primary" href="{{ url_for('items') }}">Browse reports <span aria-hidden="true">→</span></a><a class="button button-outline" href="{{ url_for('new_item') }}">Report an item <span aria-hidden="true">↗</span></a></div></div></div>
+  </section>
+</div>
 {% endblock %}
