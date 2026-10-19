@@ -6,6 +6,9 @@
 
 FindIt SDSU is an independent San Diego State University CS 514 database project. It brings lost and found reports into one searchable application, suggests possible matches using public item details, and lets claimants provide identifying information privately for review.
 
+
+![FindIt SDSU browse-and-search interface](https://raw.githubusercontent.com/DellyCodez/FindIt-SDSU/work/unified-site/app/static/project/about-browse.webp)
+
 ## What it does
 
 - **Report lost or found property:** Add a description, category, campus location, date, distinguishing characteristics, and up to three photos.
